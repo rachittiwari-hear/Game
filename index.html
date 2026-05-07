@@ -839,7 +839,16 @@ function renderLobby() {
 
     const releaseDate =
       new Date(gameConfig.release_date);
-    const locked      = new Date() < releaseDate;
+      const now = new Date();
+
+    const expiryDate =
+      gameConfig.expiry_date
+    ? new Date(gameConfig.expiry_date)
+    : null;
+
+    const locked =
+      now < releaseDate ||
+      (expiryDate && now > expiryDate);
     const gs   = scores[g.id] || [];
     const best = gs.length ? Math.max(...gs.map(s => s.score)) : null;
     const diffBadge = { Easy:'badge-easy', Medium:'badge-medium', Hard:'badge-hard' }[g.diff] || 'badge-easy';
@@ -850,7 +859,16 @@ function renderLobby() {
         <div class="game-icon" style="background:${g.color}1a">${g.icon}</div>
         <div class="game-title">${g.title}</div>
         <div class="game-desc">${g.desc}</div>
-        ${locked ? `<div class="comingSoon">🔒 Unlocks In<div class="comingDate">${getCountdown(releaseDate)}</div></div>` : ''}
+      ${locked ? `<div class="comingSoon">
+
+      ${expiryDate && now > expiryDate
+      ? '⛔ Expired'
+      : `🔒 Unlocks In
+         <div class="comingDate">
+       ${getCountdown(releaseDate)}
+     </div>`}
+
+      </div>` : ''}
         <div class="game-meta">
           <span class="badge ${diffBadge}">${g.diff}</span>
           <span class="game-score">${best !== null ? 'Best: <span>'+best+'</span>' : 'Not played'}</span>
