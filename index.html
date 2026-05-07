@@ -157,9 +157,9 @@
   /* RESULT MODAL */
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 999;
-    display: none; align-items: center; justify-content: center; pointer-events: none;
+    display: none; align-items: center; justify-content: center;
   }
-  .modal-overlay.show { display: flex; pointer-events: none;}
+  .modal-overlay.show { display: flex; }
   .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r2); padding: 40px; width: 420px; text-align: center; }
   .modal-icon { font-size: 52px; margin-bottom: 16px; }
   .modal-title { font-family: var(--font-display); font-size: 24px; font-weight: 800; margin-bottom: 8px; }
@@ -380,11 +380,11 @@
     </div>
 
     <div class="modal-title">
-      One Chance to Submit
+      One Chance Only
     </div>
 
     <div class="modal-detail">
-      You have only <b>ONE chance</b> to submit this game.
+      You have only <b>ONE chance</b> to play this game.
       <br><br>
       Play wisely and submit carefully.
     </div>
@@ -417,37 +417,7 @@
     </div>
     <div class="field">
       <label>Password</label>
-      <div style="position:relative;">
-
-  <input
-    type="password"
-    id="empPass"
-    placeholder="••••••••"
-    style="padding-right:50px;"
-  />
-
-  <button
-    type="button"
-    onclick="
-      const p = document.getElementById('empPass');
-      p.type = p.type === 'password' ? 'text' : 'password';
-      this.textContent = p.type === 'password' ? '👁️' : '🙈';
-    "
-    style="
-      position:absolute;
-      right:10px;
-      top:50%;
-      transform:translateY(-50%);
-      background:none;
-      border:none;
-      cursor:pointer;
-      font-size:18px;
-    "
-  >
-    👁️
-  </button>
-
-</div>
+      <input type="password" id="empPass" placeholder="••••••••" />
     </div>
     <div class="field">
       <label>Department</label>
@@ -883,7 +853,7 @@ setTimeout(() => {
     '⚠️ One Chance Only';
 
   document.getElementById('modalDetail').innerHTML = `
-    You have only <b>ONE chance</b> to submit this game.<br><br>
+    You have only <b>ONE chance</b> to play this game.<br><br>
     Play wisely and submit carefully.
   `;
 
