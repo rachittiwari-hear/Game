@@ -384,9 +384,10 @@
     </div>
 
     <div class="modal-detail">
-      You have only <b>ONE chance</b> to play this game.
+      You have only <b>ONE chance</b> to submit this game.
       <br><br>
-      Play wisely and submit carefully.
+      You can resume anytime before submitting.
+      Once submitted, it cannot be played again.
     </div>
 
     <div class="modal-btns">
@@ -417,7 +418,37 @@
     </div>
     <div class="field">
       <label>Password</label>
-      <input type="password" id="empPass" placeholder="••••••••" />
+      <div style="position:relative;">
+
+  <input
+    type="password"
+    id="empPass"
+    placeholder="••••••••"
+    style="padding-right:50px;"
+  />
+
+  <button
+    type="button"
+    onclick="
+      const p = document.getElementById('empPass');
+      p.type = p.type === 'password' ? 'text' : 'password';
+      this.textContent = p.type === 'password' ? '👁️' : '🙈';
+    "
+    style="
+      position:absolute;
+      right:10px;
+      top:50%;
+      transform:translateY(-50%);
+      background:none;
+      border:none;
+      cursor:pointer;
+      font-size:18px;
+    "
+  >
+    👁️
+  </button>
+
+</div>
     </div>
     <div class="field">
       <label>Department</label>
@@ -541,7 +572,14 @@ async function sheetsRequest(payload) {
       });
 
     clearTimeout(timeout);
-    return await res.json();
+    const text = await res.text();
+
+try {
+  return JSON.parse(text);
+} catch(e) {
+  console.log('Non JSON response:', text);
+  return { success: true };
+}
   } catch(e) {
     console.warn('sheetsRequest error:', e);
     return { success: false };
@@ -724,6 +762,7 @@ function getCurrentGameState() {
 async function saveCurrentGame() {
   if (!currentUser || !currentGame) return;
   const progressData = getCurrentGameState();
+  loadedSave = JSON.parse(JSON.stringify(progressData));
   const payload = JSON.stringify(progressData);
   setSaveIndicator('saving');
   // Save to Sheets
@@ -827,7 +866,7 @@ function getCountdown(releaseDate) {
 // ─── GAME LAUNCHER ───────────────────────────────────
 async function launchGame(id) {
   // FIX: reset per-game globals before each launch
-  resetGameGlobals();
+  
   
   currentGame  = id;
   liveScore    = 0;
@@ -838,8 +877,22 @@ async function launchGame(id) {
   document.getElementById('activeGameTitle').textContent = GAMES.find(g => g.id === id).title;
 
   // Load saved progress (user-scoped)
-  try { loadedSave = await loadProgress(id); }
-  catch(e) { loadedSave = null; }
+ loadedSave = null;
+
+try {
+
+  const freshSave = await loadProgress(id);
+
+  if (freshSave) {
+    loadedSave = JSON.parse(JSON.stringify(freshSave));
+  }
+
+} catch(e) {
+
+  console.error(e);
+
+  loadedSave = null;
+}
 
 showScreen('game-screen');
 
@@ -849,13 +902,14 @@ setTimeout(() => {
 
   document.getElementById('modalScore').textContent = '';
 
-  document.getElementById('modalTitle').textContent =
-    '⚠️ One Chance Only';
+document.getElementById('modalTitle').textContent =
+  '⚠️ One Submission Only';
 
-  document.getElementById('modalDetail').innerHTML = `
-    You have only <b>ONE chance</b> to play this game.<br><br>
-    Play wisely and submit carefully.
-  `;
+document.getElementById('modalDetail').innerHTML = `
+  You have only <b>ONE chance</b> to submit this game.<br><br>
+  You may continue and resume before submission.
+  Once submitted, the game will be locked.
+`;
 
   document.getElementById('warningModal').classList.add('show');
 
@@ -1029,7 +1083,7 @@ function startAutoSave() {
   stopAutoSave();
   autoSaveInterval = setInterval(() => {
     if (currentGame && gameActive) saveCurrentGame().catch(() => {});
-  }, 60000);
+  }, 10000);
 }
 function stopAutoSave() {
   if (autoSaveInterval) { clearInterval(autoSaveInterval); autoSaveInterval = null; }
@@ -1098,7 +1152,12 @@ function restoreGameState() {
 
   if (loadedSave.memory) {
     const m = loadedSave.memory;
-    if (m.sudokuPuzzle)   sudokuPuzzle   = m.sudokuPuzzle;
+    if (m.sudokuPuzzle) {
+
+      sudokuPuzzle =
+      JSON.parse(JSON.stringify(m.sudokuPuzzle));
+
+      }
     if (m.sudokuSolution) sudokuSolution = m.sudokuSolution;
     if (m.sudokuGiven)    sudokuGiven    = m.sudokuGiven;
     if (m.scrambleWords)  scrambleWords  = m.scrambleWords;
@@ -1112,6 +1171,14 @@ function restoreGameState() {
   if (loadedSave.inputs && loadedSave.inputs.length) {
     setTimeout(() => {
       loadedSave.inputs.forEach(inp => {
+        if (
+  currentGame === 'sudoku' &&
+  inp.row !== null &&
+  inp.value
+) {
+  sudokuPuzzle[inp.row][inp.col] =
+    parseInt(inp.value) || 0;
+}
         let el = null;
         if (inp.id) el = document.getElementById(inp.id);
         if (!el && inp.row !== null) el = document.querySelector(`[data-r="${inp.row}"][data-c="${inp.col}"]`);
@@ -1166,9 +1233,22 @@ function renderSudoku(area) {
 </a>
       </div>
     </div>`;
-  renderSudokuGrid();
-  renderSudokuPad();
-  restoreGameState();
+  if (
+  loadedSave &&
+  loadedSave.memory &&
+  loadedSave.memory.sudokuPuzzle
+) {
+
+  sudokuPuzzle =
+    JSON.parse(
+      JSON.stringify(
+        loadedSave.memory.sudokuPuzzle
+      )
+    );
+}
+
+renderSudokuGrid();
+renderSudokuPad();
 }
 
 function renderSudokuGrid() {
@@ -1178,7 +1258,9 @@ function renderSudokuGrid() {
   for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
     const div = document.createElement('div');
     div.className   = 'sudoku-cell' + (sudokuGiven[r][c] ? ' given' : '');
-    div.textContent = sudokuPuzzle[r][c] || '';
+    const value = sudokuPuzzle[r][c];
+
+    div.textContent = value ? value : '';
     div.dataset.r   = r; div.dataset.c = c;
     if (!sudokuGiven[r][c]) div.onclick = () => selectSudokuCell(r, c);
     grid.appendChild(div);
@@ -1221,6 +1303,7 @@ function enterSudokuNum(n) {
   const cell = document.querySelectorAll('.sudoku-cell')[r * 9 + c];
   cell.textContent = n || '';
   cell.classList.remove('error');
+    triggerAutoSave();
   if (n && checkSudokuComplete()) {
   showToast('Sudoku solved! Click Submit to claim 5 points');
     }
@@ -1401,7 +1484,7 @@ function renderCrossword(area) {
   // Pick word set based on user seed — different user = different set
   const setIdx = userGameSeed(currentUser.id, 'crossword', 0) % CW_POOLS.length;
   buildCrossword(document.getElementById('cwContainer'), CW_POOLS[setIdx]);
-  restoreGameState();
+  
 }
 
 function buildCrossword(container, WORDS) {
@@ -1658,7 +1741,7 @@ function renderMemory(area) {
 }
 
 function flipCard(idx, emoji) {
-  if (memLock) return;
+  if (memLock || memFlipped.length >= 2) return;
   const card = document.getElementById('mc' + idx);
   if (!card || card.classList.contains('flipped') || card.classList.contains('matched')) return;
   card.classList.add('flipped');
@@ -1801,8 +1884,14 @@ function toggleLB() { document.getElementById('lbPanel').classList.toggle('open'
 //  UTILS
 // ═══════════════════════════════════════════════════
 function addScore(delta) {
+
   liveScore = Math.max(0, liveScore + delta);
-  document.getElementById('liveScore').textContent = liveScore;
+
+  const scoreEl = document.getElementById('liveScore');
+
+  if (scoreEl) {
+    scoreEl.textContent = liveScore;
+  }
 }
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
