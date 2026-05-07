@@ -834,8 +834,29 @@ function renderLobby() {
   GAMES.forEach(g => {
     const gameConfig  = dynamicGames.find(x => x.game_type === g.id);
     if (!gameConfig || !gameConfig.release_date) {
-    return;
-      }
+
+  grid.innerHTML += `
+    <div class="game-card locked"
+         style="--card-color:${g.color}">
+      <div class="game-icon"
+           style="background:${g.color}1a">
+        ${g.icon}
+      </div>
+
+      <div class="game-title">${g.title}</div>
+
+      <div class="game-desc">
+        Loading game...
+      </div>
+
+      <div class="comingSoon">
+        🔒 Locked
+      </div>
+    </div>
+  `;
+
+  return;
+}
 
     const releaseDate =
       new Date(gameConfig.release_date);
