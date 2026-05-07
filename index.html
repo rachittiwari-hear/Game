@@ -157,9 +157,9 @@
   /* RESULT MODAL */
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 999;
-    display: none; align-items: center; justify-content: center;
+    display: none; align-items: center; justify-content: center; pointer-events: none;
   }
-  .modal-overlay.show { display: flex; }
+  .modal-overlay.show { display: flex; pointer-events: none;}
   .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r2); padding: 40px; width: 420px; text-align: center; }
   .modal-icon { font-size: 52px; margin-bottom: 16px; }
   .modal-title { font-family: var(--font-display); font-size: 24px; font-weight: 800; margin-bottom: 8px; }
