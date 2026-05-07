@@ -417,7 +417,37 @@
     </div>
     <div class="field">
       <label>Password</label>
-      <input type="password" id="empPass" placeholder="••••••••" />
+      <div style="position:relative;">
+
+  <input
+    type="password"
+    id="empPass"
+    placeholder="••••••••"
+    style="padding-right:50px;"
+  />
+
+  <button
+    type="button"
+    onclick="
+      const p = document.getElementById('empPass');
+      p.type = p.type === 'password' ? 'text' : 'password';
+      this.textContent = p.type === 'password' ? '👁️' : '🙈';
+    "
+    style="
+      position:absolute;
+      right:10px;
+      top:50%;
+      transform:translateY(-50%);
+      background:none;
+      border:none;
+      cursor:pointer;
+      font-size:18px;
+    "
+  >
+    👁️
+  </button>
+
+</div>
     </div>
     <div class="field">
       <label>Department</label>
