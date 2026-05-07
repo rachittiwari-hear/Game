@@ -1754,21 +1754,46 @@ function checkMath(el, chosen, correct) {
 const MOCK_PLAYERS = ['AKS','RKT','PVT','SNK','MRN','DSH','VRN','ATK','NRJ','KRN'];
 const LB_COLORS    = ['#7c6aff','#c8f564','#ff6b6b','#5ec4ff','#ff9f5b','#c8f564','#7c6aff','#ff6b6b','#5ec4ff','#ff9f5b'];
 
-function renderLeaderboard(gameId) {
-  const rng = seededRand(hashStr(gameId));
-  const players = MOCK_PLAYERS.map(name => ({ name, score: Math.floor(300 + rng() * 700) }));
-  players.sort((a, b) => b.score - a.score);
-  const myScore = scores[gameId]?.length ? Math.max(...scores[gameId].map(s => s.score)) : 0;
-  if (myScore) players.push({ name: currentUser.id.toUpperCase().slice(0, 3), score: myScore, me: true });
-  players.sort((a, b) => b.score - a.score);
+async function renderLeaderboard(gameId) {
 
-  document.getElementById('lbContent').innerHTML = players.slice(0, 8).map((p, i) => `
-    <div class="lb-row" style="${p.me ? 'background:rgba(200,245,100,0.07);border-radius:6px;padding:8px 6px' : ''}">
-      <div class="lb-rank">${i+1}</div>
-      <div class="lb-avatar" style="background:${LB_COLORS[i%LB_COLORS.length]}22;color:${LB_COLORS[i%LB_COLORS.length]}">${p.name.slice(0,2)}</div>
-      <div class="lb-name" style="${p.me ? 'color:var(--accent);font-weight:500' : ''}"><b>${p.name}</b>${p.me ? ' (You)' : ''}</div>
-      <div class="lb-score">${p.score}</div>
-    </div>`).join('');
+  const res = await sheetsRequest({
+    action: 'leaderboard'
+  });
+
+  if (!res || !res.leaderboard) return;
+
+  const players = res.leaderboard;
+
+  document.getElementById('lbContent').innerHTML =
+    players.slice(0, 8).map((p, i) => `
+
+    <div class="lb-row">
+
+      <div class="lb-rank">
+        ${i + 1}
+      </div>
+
+      <div
+        class="lb-avatar"
+        style="
+          background:${LB_COLORS[i % LB_COLORS.length]}22;
+          color:${LB_COLORS[i % LB_COLORS.length]};
+        "
+      >
+        ${p.name.substring(0,2).toUpperCase()}
+      </div>
+
+      <div class="lb-name">
+        <b>${p.name}</b>
+      </div>
+
+      <div class="lb-score">
+        ${p.score}
+      </div>
+
+    </div>
+
+  `).join('');
 }
 function toggleLB() { document.getElementById('lbPanel').classList.toggle('open'); }
 
