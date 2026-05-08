@@ -1456,9 +1456,65 @@ function enterSudokuNum(n) {
 }
 
 function checkSudokuComplete() {
-  for (let r = 0; r < 9; r++)
-    for (let c = 0; c < 9; c++)
-      if (sudokuPuzzle[r][c] !== sudokuSolution[r][c]) return false;
+
+  // Check rows
+  for (let r = 0; r < 9; r++) {
+
+    const row = new Set();
+
+    for (let c = 0; c < 9; c++) {
+
+      const val = sudokuPuzzle[r][c];
+
+      if (val < 1 || val > 9 || row.has(val)) {
+        return false;
+      }
+
+      row.add(val);
+    }
+  }
+
+  // Check columns
+  for (let c = 0; c < 9; c++) {
+
+    const col = new Set();
+
+    for (let r = 0; r < 9; r++) {
+
+      const val = sudokuPuzzle[r][c];
+
+      if (val < 1 || val > 9 || col.has(val)) {
+        return false;
+      }
+
+      col.add(val);
+    }
+  }
+
+  // Check 3x3 boxes
+  for (let boxRow = 0; boxRow < 3; boxRow++) {
+
+    for (let boxCol = 0; boxCol < 3; boxCol++) {
+
+      const box = new Set();
+
+      for (let r = 0; r < 3; r++) {
+
+        for (let c = 0; c < 3; c++) {
+
+          const val =
+            sudokuPuzzle[boxRow * 3 + r][boxCol * 3 + c];
+
+          if (box.has(val)) {
+            return false;
+          }
+
+          box.add(val);
+        }
+      }
+    }
+  }
+
   return true;
 }
 
