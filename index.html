@@ -1613,7 +1613,7 @@ function generateSudoku(seed) {
   const positions = [];
   for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) positions.push([r, c]);
   shuffle(positions, rng);
-  for (let i = 0; i < 46; i++) {
+  for (let i = 0; i < 52; i++) {
     const [r, c] = positions[i];
     puzzle[r][c] = 0;
   }
