@@ -1962,54 +1962,95 @@ const dir =
   i % 2 === 0
     ? 'A'
     : 'D';
-
+    
 let row = 0;
 let col = 0;
 
 if (i === 0) {
 
-  row = 4;
-  col = 0;
+  row = 7;
+  col = 1;
 
 } else {
 
-  const prev =
-    selectedWords[i - 1].word;
+  let placed = false;
 
-  const shared =
-    [...w.word].find(ch =>
-      prev.includes(ch)
-    );
+  for (const placedWord of selectedWords.slice(0, i)) {
 
-  if (shared) {
+    for (const shared of w.word) {
 
-    const prevIndex =
-      prev.indexOf(shared);
+      if (
+        placedWord.word.includes(shared)
+      ) {
 
-    const currIndex =
-      w.word.indexOf(shared);
+        const sharedIndex1 =
+          w.word.indexOf(shared);
 
-    if (dir === 'D') {
+        const sharedIndex2 =
+          placedWord.word.indexOf(shared);
 
-      row = 7 - currIndex;
-      col = prevIndex;
+        if (dir === 'A') {
 
-    } else {
+          row =
+            placedWord.row +
+            sharedIndex2;
 
-      row = prevIndex;
-      col = 7 - currIndex;
+          col =
+            placedWord.col -
+            sharedIndex1;
+
+        } else {
+
+          row =
+            placedWord.row -
+            sharedIndex1;
+
+          col =
+            placedWord.col +
+            sharedIndex2;
+        }
+
+        const fits =
+          row >= 0 &&
+          col >= 0 &&
+          (
+            dir === 'A'
+              ? col + w.word.length <= 15
+              : row + w.word.length <= 15
+          );
+
+        if (fits) {
+          placed = true;
+          break;
+        }
+      }
     }
 
-  } else {
+    if (placed) break;
+  }
 
-    row =
-      Math.floor(Math.random() * 13);
+  if (!placed) {
 
-    col =
-      Math.floor(Math.random() * 13);
+    for (let tries = 0; tries < 100; tries++) {
+
+      row =
+        Math.floor(Math.random() * 15);
+
+      col =
+        Math.floor(Math.random() * 15);
+
+      const fits =
+        dir === 'A'
+          ? col + w.word.length <= 15
+          : row + w.word.length <= 15;
+
+      if (fits) {
+        placed = true;
+        break;
+      }
+    }
   }
 }
-
 
     
 return {
@@ -2104,18 +2145,7 @@ if (!canPlace) return;
         grid[r][c] !== '#'
         ) {
 
-        if (grid[r][c] === '#') {
-        return;
-        }
-
-       
-if (
-  grid[r][c] &&
-  grid[r][c] !== '#' &&
-  grid[r][c].letter !== p.word[i]
-) {
-  return;
-}
+     
 
 
         grid[r][c] = {
