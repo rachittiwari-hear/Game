@@ -208,18 +208,44 @@
 
   /* CROSSWORD */
   .crossword-container { display: flex; gap: 28px; width: 100%; max-width: 860px; }
-  .crossword-grid-wrap { flex-shrink: 0; }
+  
+.crossword-grid-wrap {
+  flex-shrink: 0;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
   .crossword-grid { display: grid; border: 2px solid var(--border2); border-radius: 4px; overflow: hidden; }
   .cw-cell {
-    width: 42px; height: 42px; border: 0.5px solid var(--border);
+    width: 34px; height: 34px; border: 0.5px solid var(--border);
     display: flex; align-items: center; justify-content: center;
     position: relative; background: var(--surface2); cursor: pointer;
     transition: background 0.1s;
   }
-  .cw-cell.black { background: #0a0a0f; cursor: default; }
+
+.cw-cell.black {
+
+  background: #111;
+  border: 1px solid #111;
+  pointer-events: none;
+  cursor: default;
+}
+
+.cw-cell.black input {
+  display: none;
+}
+
+.cw-input {
+
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 16px;
+  text-align: center;
+}
+
   .cw-cell.selected { background: rgba(124,106,255,0.25); }
   .cw-cell.highlighted { background: rgba(124,106,255,0.1); }
-  .cw-cell.correct { background: rgba(200,245,100,0.1); }
+  
   .cw-num { position: absolute; top: 2px; left: 3px; font-size: 9px; color: var(--text3); font-family: var(--font-mono); }
   .cw-input {
     width: 100%; height: 100%; background: none; border: none; text-align: center;
@@ -1674,79 +1700,545 @@ function generateSudoku(seed) {
 // ═══════════════════════════════════════════════════
 
 // Pool of verified non-intersecting word sets — picked by user seed
-const CW_POOLS = [
-  // Set A
-  [
-    { word:'FOCUS',   dir:'A', row:0, col:0, num:1,  clue:'Direct all your concentration here' },
-    { word:'LOGIC',   dir:'A', row:2, col:0, num:2,  clue:'Systematic and rational thinking' },
-    { word:'BRAIN',   dir:'A', row:4, col:0, num:3,  clue:'The organ doing the thinking' },
-    { word:'SHARP',   dir:'A', row:6, col:0, num:4,  clue:'Clever; opposite of dull' },
-    { word:'SCORE',   dir:'A', row:8, col:0, num:5,  clue:'Points earned in a game' },
-    { word:'FLASH',   dir:'D', row:0, col:6, num:6,  clue:'Sudden bright light' },
-    { word:'LEVEL',   dir:'D', row:0, col:7, num:7,  clue:'Stage in a game' },
-    { word:'QUICK',   dir:'D', row:0, col:8, num:8,  clue:'Fast; opposite of slow' },
-    { word:'SOLVE',   dir:'D', row:5, col:6, num:9,  clue:'Find the answer to a problem' },
-    { word:'THINK',   dir:'D', row:5, col:7, num:10, clue:'Use your mind to reason' },
-  ],
-  // Set B
-  [
-    { word:'SPEED',   dir:'A', row:0, col:0, num:1,  clue:'How fast you move' },
-    { word:'AGILE',   dir:'A', row:2, col:0, num:2,  clue:'Able to move quickly and easily' },
-    { word:'POWER',   dir:'A', row:4, col:0, num:3,  clue:'Strength or force' },
-    { word:'ELITE',   dir:'A', row:6, col:0, num:4,  clue:'The best of a group' },
-    { word:'GRIND',   dir:'A', row:8, col:0, num:5,  clue:'Work hard continuously' },
-    { word:'SWEAT',   dir:'D', row:0, col:6, num:6,  clue:'What you do during exercise' },
-    { word:'GOALS',   dir:'D', row:0, col:7, num:7,  clue:'Targets you set for yourself' },
-    { word:'TRACK',   dir:'D', row:0, col:8, num:8,  clue:'Path for running or racing' },
-    { word:'PUSH',    dir:'D', row:5, col:6, num:9,  clue:'Apply force forward' },
-    { word:'LEAN',    dir:'D', row:5, col:7, num:10, clue:'Slim and fit (or to tilt)' },
-  ],
-  // Set C
-  [
-    { word:'MARCH',   dir:'A', row:0, col:0, num:1,  clue:'Walk in a military style' },
-    { word:'STEPS',   dir:'A', row:2, col:0, num:2,  clue:'What a pedometer counts' },
-    { word:'PLANK',   dir:'A', row:4, col:0, num:3,  clue:'Core exercise flat as a board' },
-    { word:'SWEAT',   dir:'A', row:6, col:0, num:4,  clue:'Moisture during exercise' },
-    { word:'BURNS',   dir:'A', row:8, col:0, num:5,  clue:'What calories do during a workout' },
-    { word:'BREATH',  dir:'D', row:0, col:6, num:6,  clue:'Air in and out of lungs' },
-    { word:'CALVES',  dir:'D', row:0, col:7, num:7,  clue:'Lower leg muscles' },
-    { word:'SPRINT',  dir:'D', row:0, col:8, num:8,  clue:'Run at maximum speed' },
-    { word:'PULSE',   dir:'D', row:4, col:6, num:9,  clue:'Your heartbeat rhythm' },
-    { word:'REPS',    dir:'D', row:6, col:7, num:10, clue:'Repetitions in a set' },
-  ],
-  // Set D
-  [
-    { word:'CLIMB',   dir:'A', row:0, col:0, num:1,  clue:'Go up using hands and feet' },
-    { word:'SQUAT',   dir:'A', row:2, col:0, num:2,  clue:'Lower body by bending knees' },
-    { word:'LUNGE',   dir:'A', row:4, col:0, num:3,  clue:'Step forward and lower your body' },
-    { word:'REACH',   dir:'A', row:6, col:0, num:4,  clue:'Extend to touch something far' },
-    { word:'TWIST',   dir:'A', row:8, col:0, num:5,  clue:'Rotate your torso or body' },
-    { word:'TEMPO',   dir:'D', row:0, col:6, num:6,  clue:'Speed of a workout rhythm' },
-    { word:'BURPEE',  dir:'D', row:0, col:7, num:7,  clue:'Full-body floor-to-jump exercise' },
-    { word:'CARDIO',  dir:'D', row:0, col:8, num:8,  clue:'Heart-rate-raising exercise' },
-    { word:'CORE',    dir:'D', row:4, col:6, num:9,  clue:'The muscles at your midsection' },
-    { word:'REST',    dir:'D', row:6, col:8, num:10, clue:'Recovery time between sets' },
-  ],
+
+
+const CROSSWORD_TEMPLATES = [
+
+[
+".....##.......",
+"...#.....#....",
+".......##.....",
+"..##......#...",
+".....#........",
+"........##....",
+"...#.......#..",
+".....##.......",
+"..#.......#...",
+"....##........",
+"........#.....",
+"...#......##..",
+".....##.......",
+"....#.....#...",
+".......##....."
+],
+
+[
+"...##.........",
+"......#....##.",
+".##......#....",
+".....##.......",
+"...#......#...",
+"........##....",
+"..#........#..",
+".....##.......",
+"..#........#..",
+"....##........",
+"...#......#...",
+".......##.....",
+".##....#......",
+"...#......##..",
+"........##...."
+],
+
+[
+".......##.....",
+"...#......#...",
+"..##........#.",
+".....##.......",
+"....#.....##..",
+"........#.....",
+".#........##..",
+".....##.......",
+"..##........#.",
+".....#........",
+"..##.....#....",
+".......##.....",
+".#........##..",
+"...#......#...",
+".....##......."
+],
+
+[
+"..##.......#..",
+"......##......",
+"...#......#...",
+"........##....",
+".##........#..",
+".....##.......",
+"..#.......##..",
+".......##.....",
+"..##.......#..",
+"....##........",
+"...#......#...",
+"......##......",
+".#........##..",
+".....##.......",
+"..#.......##.."
+],
+
+[
+"........##....",
+"...##.........",
+"..#......#....",
+".....##.......",
+".##........#..",
+"........##....",
+"...#.......#..",
+".....##.......",
+"..#........##.",
+"....##........",
+"...#......#...",
+".......##.....",
+".##........#..",
+"......##......",
+"...#.......#.."
+],
+
+[
+".....##.......",
+".##........#..",
+"...#......##..",
+"........##....",
+"..##.......#..",
+".....##.......",
+"...#........#.",
+".......##.....",
+".#........##..",
+"....##........",
+"...#......#...",
+"......##......",
+"..#........##.",
+".....##.......",
+"...#.......#.."
+],
+
+[
+"...#......#...",
+".....##.......",
+".##........#..",
+"........##....",
+"..#.......##..",
+".....##.......",
+"...#........#.",
+".......##.....",
+".#........##..",
+"....##........",
+"...#......#...",
+"......##......",
+".##........#..",
+".....##.......",
+"...#.......#.."
+],
+
+[
+"........##....",
+"..##.......#..",
+".....##.......",
+".#........##..",
+"...#......#...",
+"......##......",
+"..#........##.",
+".....##.......",
+"...#........#.",
+".......##.....",
+".##........#..",
+"........##....",
+"...#......#...",
+".....##.......",
+"..#.......##.."
+],
+
+[
+"...#.......#..",
+"......##......",
+".##........#..",
+".....##.......",
+"...#......#...",
+"........##....",
+"..#........##.",
+".....##.......",
+".#........##..",
+"....##........",
+"...#......#...",
+".......##.....",
+".##........#..",
+".....##.......",
+"...#.......#.."
+],
+
+[
+".....##.......",
+"...#......#...",
+".##........#..",
+"........##....",
+"..#.......##..",
+".....##.......",
+"...#........#.",
+".......##.....",
+".#........##..",
+"....##........",
+"...#......#...",
+"......##......",
+".##........#..",
+".....##.......",
+"..#.......##.."
+]
+
 ];
 
+
+const CROSSWORD_WORD_POOL = [
+
+{ word:"AUDIOLOGIST", clue:"The expert people trust when conversations begin fading away" },
+
+{ word:"HEARINGAID", clue:"Tiny technology restoring voices many thought were lost" },
+
+{ word:"CONSULTATION", clue:"Where uncertainty slowly becomes a decision" },
+
+{ word:"CUSTOMERCARE", clue:"The department expected to stay calm even when others are not" },
+
+{ word:"APPOINTMENT", clue:"A reserved moment that might change someone's hearing life" },
+
+{ word:"PARTNERCLINIC", clue:"Not hear.com itself, but where most journeys begin" },
+
+{ word:"HEARINGTEST", clue:"The exam your ears take without speaking a word" },
+
+{ word:"FOLLOWUP", clue:"The contact proving the first conversation actually mattered" },
+
+{ word:"SALESFORCE", clue:"The software empire where customer journeys get recorded" },
+
+{ word:"CRMTOOLS", clue:"Digital memory stronger than most humans possess" },
+
+{ word:"ONBOARDING", clue:"The transition phase between stranger and customer" },
+
+{ word:"LEADMANAGEMENT", clue:"The organized chase before revenue appears" },
+
+{ word:"PATIENTCARE", clue:"The reason healthcare businesses exist beyond profits" },
+
+{ word:"HEARCOM", clue:"A company built around restoring forgotten sounds" },
+
+{ word:"AUDIBENE", clue:"The global identity behind many hearing journeys" },
+
+{ word:"BTEDEVICE", clue:"Technology sitting quietly behind the ear" },
+
+{ word:"RICDEVICE", clue:"A hearing solution where receiver and canal work closely together" },
+
+{ word:"CICDEVICE", clue:"The nearly invisible hearing solution" },
+
+{ word:"BLUETOOTH", clue:"The invisible bridge between phones and ears" },
+
+{ word:"RECHARGEABLE", clue:"Power that returns instead of being replaced" },
+
+{ word:"TINNITUS", clue:"Noise existing even when the room is silent" },
+
+{ word:"AUDIOGRAM", clue:"A graph revealing truths ears try hiding" },
+
+{ word:"DECIBEL", clue:"The number deciding whether sound whispers or attacks" },
+
+{ word:"FITTING", clue:"When hearing technology learns a person’s shape" },
+
+{ word:"TRIALPERIOD", clue:"The temporary phase before permanent commitment" },
+
+{ word:"CUSTOMERJOURNEY", clue:"Every step between curiosity and loyalty" },
+
+{ word:"PARTNERNETWORK", clue:"Independent clinics connected through shared business" },
+
+{ word:"CALLCENTER", clue:"Where voices solve problems from miles away" },
+
+{ word:"QUALITYCHECK", clue:"The process standing between mistakes and approval" },
+
+{ word:"RETENTION", clue:"The business art of keeping people from leaving" },
+
+{ word:"UPSELLING", clue:"Convincing someone the premium choice was necessary all along" },
+
+{ word:"CONVERSION", clue:"The exact moment interest transforms into revenue" },
+
+{ word:"FEEDBACK", clue:"Opinions companies fear and need equally" },
+
+{ word:"SUPPORTTEAM", clue:"The people expected to fix what others broke" },
+
+{ word:"CARECOORDINATOR", clue:"The role connecting every stage of patient experience" },
+
+{ word:"BOOKING", clue:"The calendar event carrying future expectations" },
+
+{ word:"OUTREACH", clue:"Conversations started before trust even exists" },
+
+{ word:"PATIENTSUCCESS", clue:"The outcome every hearing journey hopes to reach" },
+
+{ word:"HEARINGCARE", clue:"An industry focused on restoring communication itself" },
+
+{ word:"EARMOULD", clue:"The custom shape no two users share equally" },
+
+{ word:"WIDEX", clue:"One of the brands quietly competing for better hearing" },
+
+{ word:"PHONAK", clue:"A Swiss name familiar inside hearing clinics" },
+
+{ word:"SIGNIA", clue:"A premium hearing brand known for modern devices" },
+
+{ word:"OTICON", clue:"A Danish company helping people hear the world again" },
+
+{ word:"RESOUND", clue:"A hearing brand whose name promises sound itself" },
+
+{ word:"STARKEY", clue:"An American giant in hearing innovation" },
+
+{ word:"PURECHARGE", clue:"Battery freedom hiding inside a product name" },
+
+{ word:"MOTIONCHARGE", clue:"Portable energy designed for hearing technology" },
+
+{ word:"AXPLATFORM", clue:"Advanced processing power hidden beneath hearing devices" },
+
+{ word:"CONNECTIVITY", clue:"The modern expectation that everything should communicate" },
+
+{ word:"PIPELINE", clue:"Where future customers wait before becoming revenue" },
+
+{ word:"DASHBOARD", clue:"A screen full of numbers pretending to tell the whole story" },
+
+{ word:"REPORTING", clue:"Turning performance into presentations and spreadsheets" },
+
+{ word:"OPTIMIZATION", clue:"Improving systems that already technically work" },
+
+{ word:"ESCALATION", clue:"What happens when the first solution fails" },
+
+{ word:"ATTRITION", clue:"The slow disappearance companies try to prevent" },
+
+{ word:"WORKFORCE", clue:"The people behind every metric and target" },
+
+{ word:"AUTOMATION", clue:"Machines taking over repetitive human effort" },
+
+{ word:"AUTHENTICATION", clue:"The digital process proving someone is really themselves" },
+
+{ word:"SYNCHRONIZATION", clue:"When systems stay aligned without visible effort" },
+
+{ word:"SCALABILITY", clue:"The ability to grow without collapsing" },
+
+{ word:"INFRASTRUCTURE", clue:"The invisible foundation supporting everything above it" },
+
+{ word:"VIRTUALIZATION", clue:"Technology pretending hardware exists differently than it does" },
+
+{ word:"CONTAINERIZATION", clue:"Modern software packed into portable environments" },
+
+{ word:"DEPLOYMENT", clue:"The moment code stops being private and becomes public" },
+
+{ word:"FRAMEWORK", clue:"A structured shortcut developers depend on" },
+
+{ word:"COMPILER", clue:"Software translating logic into machine understanding" },
+
+{ word:"ALGORITHM", clue:"Step-by-step thinking disguised as mathematics" },
+
+{ word:"DATABASE", clue:"Organized memory companies cannot survive without" },
+
+{ word:"NETWORKING", clue:"Invisible connections carrying the modern world" },
+
+{ word:"BACKEND", clue:"The hidden side users rarely see but always depend on" },
+
+{ word:"FRONTEND", clue:"The visible layer everyone judges immediately" },
+
+{ word:"REPOSITORY", clue:"A storage place where developers hide their history" },
+
+{ word:"TOKENIZATION", clue:"Breaking information into smaller understandable pieces" },
+
+{ word:"VISUALIZATION", clue:"Making complicated data appear understandable" },
+
+{ word:"MULTITHREADING", clue:"Doing many things at once without losing control" },
+
+{ word:"ABSTRACTION", clue:"Hiding complexity so humans can still function" },
+
+{ word:"MEMOIZATION", clue:"Remembering old answers to avoid repeated effort" },
+
+{ word:"RECURSION", clue:"A problem solving itself repeatedly" },
+
+{ word:"POLYMORPHISM", clue:"One interface behaving in many different ways" },
+
+{ word:"ENCAPSULATION", clue:"Keeping details hidden behind controlled access" },
+
+{ word:"INHERITANCE", clue:"Passing behavior from parent structures to children" },
+
+{ word:"TRANSFORMER", clue:"Modern AI architecture changing how machines understand language" },
+
+{ word:"FREQUENCY", clue:"How often sound repeats itself every second" },
+
+{ word:"AMPLIFIER", clue:"Technology making weak signals impossible to ignore" },
+
+{ word:"COCHLEAR", clue:"A spiral structure responsible for hearing itself" },
+
+{ word:"AUDIBILITY", clue:"The thin line between silence and perception" }
+
+];
+
+
+  
 function renderCrossword(area) {
+
+  const seed =
+  userGameSeed(
+    currentUser.id,
+    'crossword'
+  );
+
+const rand = seededRand(seed);
+
+const template =
+  CROSSWORD_TEMPLATES[
+    Math.floor(
+      rand() *
+      CROSSWORD_TEMPLATES.length
+    )
+  ];
+
+const selectedWords =
+
+  [...CROSSWORD_WORD_POOL]
+
+    .filter(w =>
+      w.word.length <= 13
+    )
+
+    .sort(() => rand() - 0.5)
+
+    .slice(0, 12);
+
+  
   area.innerHTML = `<div class="crossword-container" id="cwContainer"></div>`;
   // Pick word set based on user seed — different user = different set
-  const setIdx = userGameSeed(currentUser.id, 'crossword', 0) % CW_POOLS.length;
-  buildCrossword(document.getElementById('cwContainer'), CW_POOLS[setIdx]);
+  
+
+buildCrossword(
+  document.getElementById('cwContainer'),
+
+  selectedWords.map((w, i) => {
+
+const dir =
+  i % 2 === 0
+    ? 'A'
+    : 'D';
+
+let row = 0;
+let col = 0;
+
+if (i === 0) {
+
+  row = 4;
+  col = 0;
+
+} else {
+
+  const prev =
+    selectedWords[i - 1].word;
+
+  const shared =
+    [...w.word].find(ch =>
+      prev.includes(ch)
+    );
+
+  if (shared) {
+
+    const prevIndex =
+      prev.indexOf(shared);
+
+    const currIndex =
+      w.word.indexOf(shared);
+
+    if (dir === 'D') {
+
+      row = 7 - currIndex;
+      col = prevIndex;
+
+    } else {
+
+      row = prevIndex;
+      col = 7 - currIndex;
+    }
+
+  } else {
+
+    row =
+      Math.floor(Math.random() * 13);
+
+    col =
+      Math.floor(Math.random() * 13);
+  }
+}
+
+
+    
+return {
+
+  word: w.word,
+
+  clue: w.clue,
+
+  dir,
+
+  row: Math.max(0, Math.min(14, row)),
+
+  col: Math.max(0, Math.min(14, col)),
+
+  num: i + 1
+
+};
+
+
+  })
+);
+
+
   
 }
 
 function buildCrossword(container, WORDS) {
-  const SIZE = 10;
-  const grid = Array.from({length:SIZE}, () => Array(SIZE).fill(null));
+  const SIZE = 15;
+  const template =
+  CROSSWORD_TEMPLATES[
+    Math.floor(
+      Math.random() *
+      CROSSWORD_TEMPLATES.length
+    )
+  ];
+
+const grid = template.map(row =>
+  row.split('').map(cell =>
+    cell === '#'
+      ? '#'
+      : null
+  )
+);
 
   WORDS.forEach(p => {
+    if (
+  (p.dir === 'A' && p.col + p.word.length > SIZE) ||
+  (p.dir === 'D' && p.row + p.word.length > SIZE)
+) {
+  return;
+}
     for (let i = 0; i < p.word.length; i++) {
       const r = p.dir === 'A' ? p.row : p.row + i;
       const c = p.dir === 'A' ? p.col + i : p.col;
-      if (r < SIZE && c < SIZE) grid[r][c] = { letter: p.word[i], num: i === 0 ? p.num : null };
-    }
+      
+if (
+  r < SIZE &&
+  c < SIZE &&
+  grid[r][c] !== '#'
+) {
+
+  if (grid[r][c] === '#') {
+    return;
+  }
+
+  if (
+    grid[r][c] &&
+    grid[r][c] !== '#' &&
+    grid[r][c].letter !== p.word[i]
+  ) {
+    return;
+  }
+
+  grid[r][c] = {
+    letter: p.word[i],
+    num: i === 0 ? p.num : null
+  };
+
+}
+
   });
 
   const userGrid = grid.map(row => row.map(cell => cell ? { ...cell, input: '' } : null));
@@ -1801,6 +2293,16 @@ function buildCrossword(container, WORDS) {
         n.className = 'cw-num'; n.textContent = grid[r][c].num;
         cell.appendChild(n);
       }
+      
+if (grid[r][c] === '#') {
+
+  cell.classList.add('black');
+
+  gridEl.appendChild(cell);
+
+  continue;
+}
+
       const inp = document.createElement('input');
       inp.className = 'cw-input'; inp.maxLength = 1;
       inp.dataset.r = r; inp.dataset.c = c;
