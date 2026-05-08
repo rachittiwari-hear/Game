@@ -1140,13 +1140,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('blur', () => { if (gameActive) triggerAntiCheat(); });
 document.addEventListener('contextmenu', e => { if (gameActive) e.preventDefault(); });
 
-function triggerAntiCheat() {
-  violations++;
-  clearInterval(timerInterval);
-  document.getElementById('antiCheatOverlay').classList.add('show');
-  document.getElementById('acCount').textContent = 'Violations: ' + violations;
-  sheetsRequest({ action: 'log', event: 'violation', empId: currentUser?.id, gameId: currentGame, violations, timestamp: new Date().toISOString() }).catch(() => {});
-}
+
 function resumeGame() {
   document.getElementById('antiCheatOverlay').classList.remove('show');
   if (gameActive) startTimer();
