@@ -992,6 +992,8 @@ function getCountdown(releaseDate) {
 
 // ─── GAME LAUNCHER ───────────────────────────────────
 async function launchGame(id) {
+  document.getElementById('resultModal')
+  .classList.remove('show');
   // FIX: reset per-game globals before each launch
   
   
