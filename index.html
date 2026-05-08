@@ -364,10 +364,8 @@
     <div class="modal-score" id="modalScore">850</div>
     <div class="modal-detail" id="modalDetail"></div>
     <div class="modal-btns">
-      <button class="btn-secondary" onclick="goToLobby()">Back to Lobby</button>
-      
-      <button class="btn-primary-sm" onclick="goToLobby()">Submit</button>
-    </div>
+  <button class="btn-primary-sm" onclick="goToLobby()">Back to Lobby</button>
+</div>
   </div>
 </div>
 <!-- WARNING MODAL -->
@@ -503,7 +501,17 @@
       <div id="saveIndicator">✓ Synced</div>
       <div class="score-display">⭐ Complete Puzzle = 5 Points</div>
       <div class="timer" id="timerDisplay">00:00</div>
-      <button class="btn-submit" id="submitBtn" onclick="submitCurrentGame()">Submit</button>
+      <button
+  class="btn-submit"
+  id="submitBtn"
+  onclick="
+    if(confirm('Are you sure you want to submit? You cannot play again.')) {
+      submitCurrentGame();
+    }
+  "
+>
+  Submit
+</button>
     </div>
   </div>
   <div class="game-area" id="gameArea"></div>
