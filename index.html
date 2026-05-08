@@ -1124,7 +1124,7 @@ submitBtn.disabled = true;
     completed = checkCrosswordComplete();
   }
 
-  clearGame();
+  
 
   let finalScore = completed ? 5 : 0;
 
@@ -1138,7 +1138,7 @@ if (res && res.error === 'already_played') {
 
   return;
 }
-
+clearGame();
   if (completed) {
 
     document.getElementById('modalTitle').textContent =
