@@ -2214,31 +2214,31 @@ const grid = template.map(row =>
       const r = p.dir === 'A' ? p.row : p.row + i;
       const c = p.dir === 'A' ? p.col + i : p.col;
       
-if (
-  r < SIZE &&
-  c < SIZE &&
-  grid[r][c] !== '#'
-) {
+        if (
+        r < SIZE &&
+        c < SIZE &&
+        grid[r][c] !== '#'
+        ) {
 
-  if (grid[r][c] === '#') {
-    return;
-  }
+        if (grid[r][c] === '#') {
+        return;
+        }
 
-  if (
-    grid[r][c] &&
-    grid[r][c] !== '#' &&
-    grid[r][c].letter !== p.word[i]
-  ) {
-    return;
-  }
+        if (
+          grid[r][c] &&
+          grid[r][c] !== '#' &&
+          grid[r][c].letter !== p.word[i]
+        ) {
+        return;
+        }
 
-  grid[r][c] = {
-    letter: p.word[i],
-    num: i === 0 ? p.num : null
-  };
+        grid[r][c] = {
+        letter: p.word[i],
+        num: i === 0 ? p.num : null
+        };
 
-}
-
+        }
+    }
   });
 
   const userGrid = grid.map(row => row.map(cell => cell ? { ...cell, input: '' } : null));
