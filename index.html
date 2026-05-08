@@ -222,18 +222,20 @@
     position: relative; background: var(--surface2); cursor: pointer;
     transition: background 0.1s;
   }
-
 .cw-cell.black {
 
-  background: #111;
+  background: #080808;
   border: 1px solid #111;
+  opacity: 0.35;
   pointer-events: none;
-  cursor: default;
 }
 
-.cw-cell.black input {
-  display: none;
+.cw-cell {
+
+  background: #191425;
+  border: 1px solid #2f2940;
 }
+
 
 .cw-input {
 
@@ -2230,13 +2232,7 @@ const grid = template.map(row =>
         return;
         }
 
-        if (
-          grid[r][c] &&
-          grid[r][c] !== '#' &&
-          grid[r][c].letter !== p.word[i]
-        ) {
-        return;
-        }
+        
 
         grid[r][c] = {
         letter: p.word[i],
