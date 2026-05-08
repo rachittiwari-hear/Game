@@ -1203,7 +1203,9 @@ async function saveScore(gameId, score) {
     '❌ You already used your one chance for this game'
   );
 
-  return false;
+  return {
+    error: 'already_played'
+  };
 }
   return res;
 }
