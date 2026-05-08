@@ -2148,10 +2148,21 @@ if (!canPlace) return;
      
 
 
-        grid[r][c] = {
-        letter: p.word[i],
-        num: i === 0 ? p.num : null
-        };
+grid[r][c] = {
+
+  letter: p.word[i],
+
+  num: i === 0 ? p.num : null,
+
+  reveal:
+    i === 0 ||
+    i === Math.floor(
+      p.word.length / 2
+    )
+};
+
+
+
 
         }
     }
@@ -2222,6 +2233,20 @@ if (!grid[r][c]) {
 
       const inp = document.createElement('input');
       inp.className = 'cw-input'; inp.maxLength = 1;
+     
+if (cellData.reveal) {
+
+  inp.value =
+    cellData.letter;
+
+  inp.disabled = true;
+
+  inp.style.opacity = '0.85';
+
+  inp.style.background =
+    'rgba(255,255,255,0.12)';
+}
+
       inp.dataset.r = r; inp.dataset.c = c;
       inp.addEventListener('input', ev => {
         const val = ev.target.value.toUpperCase().replace(/[^A-Z]/g, '');
