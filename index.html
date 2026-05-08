@@ -1062,17 +1062,25 @@ async function saveScore(gameId, score) {
   scores[gameId].push({ score, time: timerSeconds, date: new Date().toISOString() });
   localStorage.setItem('mz_scores_' + currentUser.id, JSON.stringify(scores));
   const res = await sheetsRequest({
-    action:    'score',
-    empId:     currentUser.id,
-    empName:   currentUser.name,
-    dept:      currentUser.dept,
-    gameId,
-    gameName:  GAMES.find(g => g.id === gameId)?.title || gameId,
-    score,
-    timeSecs:  timerSeconds,
-    violations,
-    timestamp: new Date().toISOString()
-  }).catch(() => {});
+  action:    'score',
+  empId:     currentUser.id,
+  empName:   currentUser.name,
+  dept:      currentUser.dept,
+  gameId,
+  gameName:  GAMES.find(g => g.id === gameId)?.title || gameId,
+  score,
+  timeSecs:  timerSeconds,
+  violations,
+  timestamp: new Date().toISOString(),
+
+  board: currentGame === 'sudoku'
+    ? JSON.stringify({
+        puzzle: sudokuPuzzle,
+        solution: sudokuSolution,
+        given: sudokuGiven
+      })
+    : ''
+}).catch(() => {});
   if (res && res.error === 'already_played') {
 
   showToast(
