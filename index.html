@@ -1022,7 +1022,12 @@ async function submitCurrentGame() {
 
   let finalScore = completed ? 5 : 0;
 
-  saveScore(currentGame, finalScore);
+  const res = await saveScore(currentGame, finalScore);
+
+if (res && res.error === 'already_played') {
+  showToast('You already submitted this game');
+  return;
+}
 
   if (completed) {
 
