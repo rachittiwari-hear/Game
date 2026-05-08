@@ -989,8 +989,14 @@ async function submitCurrentGame() {
 
   // Sudoku
   if (currentGame === 'sudoku') {
-    completed = checkSudokuComplete();
+
+  completed = checkSudokuComplete();
+
+  if (!completed) {
+    showToast('Complete the Sudoku before submitting');
+    return;
   }
+}
 
   // Memory
   if (currentGame === 'memory') {
