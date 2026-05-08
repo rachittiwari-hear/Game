@@ -1065,26 +1065,43 @@ function clearGame() {
 }
 
 async function submitCurrentGame() {
+  const submitBtn =
+  document.getElementById('submitBtn');
 
-  if (!gameActive && !currentGame) return;
+submitBtn.disabled = true;
+
+  if (!gameActive || !currentGame) {
+
+  submitBtn.disabled = false;
+
+  return;
+}
 
   let completed = false;
 
   // Sudoku
-  if (currentGame === 'sudoku') {
+ if (currentGame === 'sudoku') {
 
-  // Check if all cells are filled
-const allFilled = sudokuPuzzle.every(row =>
-  row.every(cell => cell !== 0)
-);
+  syncSudokuFromDOM();
 
-if (!allFilled) {
-  showToast('Complete the Sudoku before submitting');
+  await new Promise(r => setTimeout(r, 50));
+
+  const allFilled = sudokuPuzzle.every(row =>
+    row.every(cell => cell !== 0)
+  );
+
+  if (!allFilled) {
+
+  showToast(
+    'Complete the Sudoku before submitting'
+  );
+
+  submitBtn.disabled = false;
+
   return;
 }
 
-// Check correctness for scoring
-completed = checkSudokuComplete();
+  completed = checkSudokuComplete();
 }
 
   // Memory
@@ -1114,7 +1131,11 @@ completed = checkSudokuComplete();
   const res = await saveScore(currentGame, finalScore);
 
 if (res && res.error === 'already_played') {
+
   showToast('You already submitted this game');
+
+  submitBtn.disabled = false;
+
   return;
 }
 
@@ -1150,6 +1171,7 @@ if (res && res.error === 'already_played') {
       progressKey(currentUser.id, currentGame)
     );
   } catch(e) {}
+  submitBtn.disabled = false;
 }
 async function saveScore(gameId, score) {
   if (!scores[gameId]) scores[gameId] = [];
@@ -1183,12 +1205,17 @@ async function saveScore(gameId, score) {
 
   return false;
 }
+  return res;
 }
 
 function showResult(score) {
   document.getElementById('modalScore').textContent = score;
-  document.getElementById('modalTitle').textContent = score > 700 ? '🔥 Excellent!' : score > 400 ? '👍 Nice Work!' : '💪 Keep Going!';
-  document.getElementById('modalIcon').textContent  = score > 700 ? '🎉' : score > 400 ? '✅' : '📈';
+  document.getElementById('modalTitle').textContent =
+  score === 5
+    ? '🎉 Congratulations!'
+    : '😔 Better Luck Next Time';
+  document.getElementById('modalIcon').textContent =
+  score === 5 ? '🎉' : '😔';
   const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
   const secs = String(timerSeconds % 60).padStart(2, '0');
   document.getElementById('modalDetail').innerHTML = `Time: ${mins}:${secs}&nbsp;&nbsp;·&nbsp;&nbsp;Violations: ${violations}&nbsp;&nbsp;·&nbsp;&nbsp;Game: ${GAMES.find(g => g.id === currentGame).title}`;
@@ -1213,7 +1240,24 @@ function playAgain() {
   document.getElementById('resultModal').classList.remove('show');
   launchGame(gid);
 }
+function syncSudokuFromDOM() {
 
+  document.querySelectorAll('.sudoku-cell').forEach(cell => {
+
+    const r = Number(cell.dataset.r);
+    const c = Number(cell.dataset.c);
+
+    if (isNaN(r) || isNaN(c)) return;
+
+    const val = Number(
+      cell.textContent ||
+      cell.value ||
+      0
+    );
+
+    sudokuPuzzle[r][c] = val;
+  });
+}
 // ─── TIMER ───────────────────────────────────────────
 function startTimer() {
   clearInterval(timerInterval);
