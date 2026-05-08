@@ -216,19 +216,37 @@
 }
 
   .crossword-grid { display: grid; border: 2px solid var(--border2); border-radius: 4px; overflow: hidden; }
-  .cw-cell {
-    width: 34px; height: 34px; border: 0.5px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    position: relative; background: var(--surface2); cursor: pointer;
-    transition: background 0.1s;
-  }
+
+.cw-cell {
+
+  width: 34px;
+  height: 34px;
+
+  border: 1px solid #30274a;
+
+  background: #241b38;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  position: relative;
+
+  transition: background 0.15s;
+}
+
 .cw-cell.black {
 
-  background: #080808;
+  background: #070709;
+
   border: 1px solid #111;
-  opacity: 0.35;
+
+  opacity: 0.95;
+
   pointer-events: none;
 }
+
+
 
 .cw-cell {
 
@@ -2232,7 +2250,15 @@ const grid = template.map(row =>
         return;
         }
 
-        
+       
+if (
+  grid[r][c] &&
+  grid[r][c] !== '#' &&
+  grid[r][c].letter !== p.word[i]
+) {
+  return;
+}
+
 
         grid[r][c] = {
         letter: p.word[i],
