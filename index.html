@@ -2213,6 +2213,9 @@ grid[r][c] = {
 
   for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
     const cell = document.createElement('div');
+  
+const cellData = grid[r][c];
+
     cell.className = 'cw-cell' + (!grid[r][c] ? ' black' : '');
     if (grid[r][c]) {
       if (grid[r][c].num) {
