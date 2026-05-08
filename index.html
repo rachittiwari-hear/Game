@@ -2202,6 +2202,12 @@ const grid = template.map(row =>
       : null
   )
 );
+  
+  const gridEl =
+    document.createElement('div');
+
+  gridEl.className =
+    'crossword-grid';
 
   WORDS.forEach(p => {
     if (
@@ -2343,6 +2349,9 @@ if (grid[r][c] === '#') {
       ${down.map(p => `<div class="clue-item"><strong>${p.num}.</strong> ${p.clue} <span style="color:var(--text3);font-size:11px">(${p.word.length})</span></div>`).join('')}
     </div>`;
   container.appendChild(clueWrap);
+  
+  container.appendChild(gridEl);
+
 }
 
 // ═══════════════════════════════════════════════════
