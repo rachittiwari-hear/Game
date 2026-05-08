@@ -990,12 +990,18 @@ async function submitCurrentGame() {
   // Sudoku
   if (currentGame === 'sudoku') {
 
-  completed = checkSudokuComplete();
+  // Check if all cells are filled
+const allFilled = sudokuPuzzle.every(row =>
+  row.every(cell => cell !== 0)
+);
 
-  if (!completed) {
-    showToast('Complete the Sudoku before submitting');
-    return;
-  }
+if (!allFilled) {
+  showToast('Complete the Sudoku before submitting');
+  return;
+}
+
+// Check correctness for scoring
+completed = checkSudokuComplete();
 }
 
   // Memory
