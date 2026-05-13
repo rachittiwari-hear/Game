@@ -2045,9 +2045,14 @@ if (
   !loadedSave.memory.crosswordData.selectedWords
 ) {
 
-  const rand =
-    seededRand(
-      const isRestoredGame =
+  const rand = seededRand(
+  userGameSeed(
+    currentUser.id,
+    'crossword'
+  )
+);
+
+const isRestoredGame =
 
   loadedSave &&
   loadedSave.memory &&
@@ -2064,11 +2069,6 @@ if (isRestoredGame) {
   );
 
 }
-      userGameSeed(
-        currentUser.id,
-        'crossword'
-      )
-    );
 if (!isRestoredGame) {
   selectedWords =
 
