@@ -1931,166 +1931,160 @@ const CROSSWORD_WORD_POOL = [
 
   
 function renderCrossword(area) {
-if (
-  loadedSave &&
-  loadedSave.memory &&
-  loadedSave.memory.crosswordData
-) {
 
-  crosswordData =
-    loadedSave.memory.crosswordData;
+  if (
+    loadedSave &&
+    loadedSave.memory &&
+    loadedSave.memory.crosswordData
+  ) {
 
-} else {
+    crosswordData =
+      loadedSave.memory.crosswordData;
 
-  const seed =
-  userGameSeed(
-    currentUser.id,
-    'crossword'
-  );
+  } else {
 
-const rand = seededRand(seed);
+    const seed =
+      userGameSeed(
+        currentUser.id,
+        'crossword'
+      );
 
+    const rand = seededRand(seed);
 
+    const selectedWords =
+      [...CROSSWORD_WORD_POOL]
+        .filter(w => w.word.length <= 13)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 12);
 
-const selectedWords =
+    area.innerHTML =
+      `<div class="crossword-container"
+        id="cwContainer"></div>`;
 
-  [...CROSSWORD_WORD_POOL]
+    crosswordData =
+      selectedWords.map((w, i) => {
 
-    .filter(w =>
-      w.word.length <= 13
-    )
+        const dir =
+          i % 2 === 0 ? 'A' : 'D';
 
-    .sort(() => Math.random() - 0.5)
+        let row = 0;
+        let col = 0;
 
-    .slice(0, 12);
+        if (i === 0) {
 
-  
-  area.innerHTML = `<div class="crossword-container" id="cwContainer"></div>`;
-  // Pick word set based on user seed — different user = different set
-  
-
-crosswordData = selectedWords.map((w, i) => {
-
-const dir =
-  i % 2 === 0
-    ? 'A'
-    : 'D';
-    
-let row = 0;
-let col = 0;
-
-if (i === 0) {
-
-  row = 7;
-  col = 1;
-
-} else {
-
-  let placed = false;
-
-  for (const placedWord of selectedWords.slice(0, i)) {
-
-    for (const shared of w.word) {
-
-      if (
-        placedWord.word.includes(shared)
-      ) {
-
-        const sharedIndex1 =
-          w.word.indexOf(shared);
-
-        const sharedIndex2 =
-          placedWord.word.indexOf(shared);
-
-        if (dir === 'A') {
-
-          row =
-            placedWord.row +
-            sharedIndex2;
-
-          col =
-            placedWord.col -
-            sharedIndex1;
+          row = 7;
+          col = 1;
 
         } else {
 
-          row =
-            placedWord.row -
-            sharedIndex1;
+          let placed = false;
 
-          col =
-            placedWord.col +
-            sharedIndex2;
+          for (const placedWord of selectedWords.slice(0, i)) {
+
+            for (const shared of w.word) {
+
+              if (
+                placedWord.word.includes(shared)
+              ) {
+
+                const sharedIndex1 =
+                  w.word.indexOf(shared);
+
+                const sharedIndex2 =
+                  placedWord.word.indexOf(shared);
+
+                if (dir === 'A') {
+
+                  row =
+                    placedWord.row +
+                    sharedIndex2;
+
+                  col =
+                    placedWord.col -
+                    sharedIndex1;
+
+                } else {
+
+                  row =
+                    placedWord.row -
+                    sharedIndex1;
+
+                  col =
+                    placedWord.col +
+                    sharedIndex2;
+                }
+
+                const fits =
+                  row >= 0 &&
+                  col >= 0 &&
+                  (
+                    dir === 'A'
+                      ? col + w.word.length <= 15
+                      : row + w.word.length <= 15
+                  );
+
+                if (fits) {
+                  placed = true;
+                  break;
+                }
+              }
+            }
+
+            if (placed) break;
+          }
+
+          if (!placed) {
+
+            for (let tries = 0; tries < 100; tries++) {
+
+              row =
+                Math.floor(Math.random() * 15);
+
+              col =
+                Math.floor(Math.random() * 15);
+
+              const fits =
+                dir === 'A'
+                  ? col + w.word.length <= 15
+                  : row + w.word.length <= 15;
+
+              if (fits) {
+                placed = true;
+                break;
+              }
+            }
+          }
         }
 
-        const fits =
-          row >= 0 &&
-          col >= 0 &&
-          (
-            dir === 'A'
-              ? col + w.word.length <= 15
-              : row + w.word.length <= 15
-          );
+        return {
 
-        if (fits) {
-          placed = true;
-          break;
-        }
-      }
-    }
+          word: w.word,
+          clue: w.clue,
+          dir,
 
-    if (placed) break;
+          row: Math.max(
+            0,
+            Math.min(14, row)
+          ),
+
+          col: Math.max(
+            0,
+            Math.min(14, col)
+          ),
+
+          num: i + 1
+        };
+      });
   }
 
-  if (!placed) {
+  area.innerHTML =
+    `<div class="crossword-container"
+      id="cwContainer"></div>`;
 
-    for (let tries = 0; tries < 100; tries++) {
-
-      row =
-        Math.floor(Math.random() * 15);
-
-      col =
-        Math.floor(Math.random() * 15);
-
-      const fits =
-        dir === 'A'
-          ? col + w.word.length <= 15
-          : row + w.word.length <= 15;
-
-      if (fits) {
-        placed = true;
-        break;
-      }
-    }
-  }
-}
-
-    
-return {
-
-  word: w.word,
-
-  clue: w.clue,
-
-  dir,
-
-  row: Math.max(0, Math.min(14, row)),
-
-  col: Math.max(0, Math.min(14, col)),
-
-  num: i + 1
-
-};
-
-  });
-
-buildCrossword(
-  document.getElementById('cwContainer'),
-  crosswordData
-);
-  
-
-  
+  buildCrossword(
+    document.getElementById('cwContainer'),
+    crosswordData
+  );
 }
 
 function buildCrossword(container, WORDS) {
