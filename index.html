@@ -699,6 +699,7 @@ let lobbyFocusIndex  = -1;
 
 // per-game mutable state (used by save/restore)
 let sudokuPuzzle = [], sudokuSolution = [], sudokuGiven = [], sudokuSelected = null;
+  let crosswordData = null;
 let scrambleWords = [], scrambleIdx = 0, scrambleLetters = [], answerLetterMap = [];
 let memFlipped = [], memMatched = 0, memMoves = 0, memLock = false;
 let mathAnswered = 0, mathTotal = 10, mathStreak = 0;
@@ -866,6 +867,7 @@ function doLogout() {
 function resetGameGlobals() {
   currentGame = null;
   loadedSave  = null;
+  crosswordData = null;
   liveScore   = 0;
   timerSeconds = 0;
   violations  = 0;
@@ -897,9 +899,11 @@ function getCurrentGameState() {
       col:       el.dataset.c || null
     })),
     memory: {
+      
       sudokuPuzzle:   sudokuPuzzle.length  ? JSON.parse(JSON.stringify(sudokuPuzzle))   : null,
       sudokuSolution: sudokuSolution.length ? JSON.parse(JSON.stringify(sudokuSolution)) : null,
       sudokuGiven:    sudokuGiven.length    ? JSON.parse(JSON.stringify(sudokuGiven))    : null,
+      crosswordData: crosswordData || null,
       scrambleWords:  scrambleWords.length  ? JSON.parse(JSON.stringify(scrambleWords))  : null,
       scrambleIdx,
       memMatched,
@@ -1092,7 +1096,7 @@ try {
 }
 
 showScreen('game-screen');
-
+restoreGameState();
 setTimeout(() => {
 
   document.getElementById('modalIcon').textContent = '⚠️';
@@ -1414,6 +1418,8 @@ function restoreGameState() {
 
   if (loadedSave.memory) {
     const m = loadedSave.memory;
+    if (m.crosswordData)
+  crosswordData = m.crosswordData;
     if (m.sudokuPuzzle) {
 
       sudokuPuzzle =
@@ -1925,6 +1931,16 @@ const CROSSWORD_WORD_POOL = [
 
   
 function renderCrossword(area) {
+if (
+  loadedSave &&
+  loadedSave.memory &&
+  loadedSave.memory.crosswordData
+) {
+
+  crosswordData =
+    loadedSave.memory.crosswordData;
+
+} else {
 
   const seed =
   userGameSeed(
@@ -1953,10 +1969,7 @@ const selectedWords =
   // Pick word set based on user seed — different user = different set
   
 
-buildCrossword(
-  document.getElementById('cwContainer'),
-
-  selectedWords.map((w, i) => {
+crosswordData = selectedWords.map((w, i) => {
 
 const dir =
   i % 2 === 0
@@ -2069,10 +2082,13 @@ return {
 
 };
 
+  });
 
-  })
+buildCrossword(
+  document.getElementById('cwContainer'),
+  crosswordData
 );
-
+  
 
   
 }
