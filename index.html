@@ -2683,8 +2683,9 @@ const LB_COLORS    = ['#7c6aff','#c8f564','#ff6b6b','#5ec4ff','#ff9f5b','#c8f564
 async function renderLeaderboard(gameId) {
 
   const res = await sheetsRequest({
-    action: 'leaderboard'
-  });
+  action: 'leaderboard',
+  gameId: gameId
+});
 
   if (!res || !res.leaderboard) return;
 
