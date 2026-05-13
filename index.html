@@ -693,6 +693,7 @@ let gameActive     = false;
 let scores         = {};
 let loadedSave     = null;   // FIX: renamed from loadedSavedGame, always scoped to current user
 let dynamicGames   = [];
+let selectedWords = [];
 let crosswordData = null;
 let autoSaveInterval = null;
 let autoSaveTimeout  = null;
@@ -898,11 +899,16 @@ function getCurrentGameState() {
       col:       el.dataset.c || null
     })),
     memory: {
-
       crosswordData:
+
       currentGame === 'crossword'
-      ? crosswordData
+
+        ? {
+        selectedWords
+        }
+
       : null,
+
       sudokuPuzzle:   sudokuPuzzle.length  ? JSON.parse(JSON.stringify(sudokuPuzzle))   : null,
       sudokuSolution: sudokuSolution.length ? JSON.parse(JSON.stringify(sudokuSolution)) : null,
       sudokuGiven:    sudokuGiven.length    ? JSON.parse(JSON.stringify(sudokuGiven))    : null,
@@ -1993,125 +1999,71 @@ const selectedWords =
   // Pick word set based on user seed — different user = different set
   
 
-buildCrossword(
-  document.getElementById('cwContainer'),
+if (
+  !loadedSave ||
+  !loadedSave.memory ||
+  !loadedSave.memory.crosswordData ||
+  !loadedSave.memory.crosswordData.selectedWords
+) {
 
-  selectedWords.map((w, i) => {
+  const rand =
+    seededRand(
+      userGameSeed(
+        currentUser.id,
+        'crossword'
+      )
+    );
 
-const dir =
-  i % 2 === 0
-    ? 'A'
-    : 'D';
-    
-let row = 0;
-let col = 0;
+  selectedWords =
 
-if (i === 0) {
+    [...CROSSWORD_WORD_POOL]
 
-  row = 7;
-  col = 1;
+    .filter(w =>
+      w.word.length <= 13
+    )
+
+    .sort(() => rand() - 0.5)
+
+    .slice(0, 12)
+
+    .map((w, i) => {
+
+      const dir =
+        i % 2 === 0
+          ? 'A'
+          : 'D';
+
+      return {
+
+        ...w,
+
+        dir,
+
+        row:
+          Math.floor(rand() * 12),
+
+        col:
+          Math.floor(rand() * 12),
+
+        num: i + 1
+      };
+    });
 
 } else {
 
-  let placed = false;
-
-  for (const placedWord of selectedWords.slice(0, i)) {
-
-    for (const shared of w.word) {
-
-      if (
-        placedWord.word.includes(shared)
-      ) {
-
-        const sharedIndex1 =
-          w.word.indexOf(shared);
-
-        const sharedIndex2 =
-          placedWord.word.indexOf(shared);
-
-        if (dir === 'A') {
-
-          row =
-            placedWord.row +
-            sharedIndex2;
-
-          col =
-            placedWord.col -
-            sharedIndex1;
-
-        } else {
-
-          row =
-            placedWord.row -
-            sharedIndex1;
-
-          col =
-            placedWord.col +
-            sharedIndex2;
-        }
-
-        const fits =
-          row >= 0 &&
-          col >= 0 &&
-          (
-            dir === 'A'
-              ? col + w.word.length <= 15
-              : row + w.word.length <= 15
-          );
-
-        if (fits) {
-          placed = true;
-          break;
-        }
-      }
-    }
-
-    if (placed) break;
-  }
-
-  if (!placed) {
-
-    for (let tries = 0; tries < 100; tries++) {
-
-      row =
-        Math.floor(Math.random() * 15);
-
-      col =
-        Math.floor(Math.random() * 15);
-
-      const fits =
-        dir === 'A'
-          ? col + w.word.length <= 15
-          : row + w.word.length <= 15;
-
-      if (fits) {
-        placed = true;
-        break;
-      }
-    }
-  }
+  selectedWords =
+    loadedSave.memory
+      .crosswordData
+      .selectedWords;
 }
 
-    
-return {
-
-  word: w.word,
-
-  clue: w.clue,
-
-  dir,
-
-  row: Math.max(0, Math.min(14, row)),
-
-  col: Math.max(0, Math.min(14, col)),
-
-  num: i + 1
-
-};
-
-
-  })
+buildCrossword(
+  document.getElementById(
+    'cwContainer'
+  ),
+  selectedWords
 );
+
 
 
   
