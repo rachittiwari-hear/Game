@@ -2272,6 +2272,9 @@ if (cellData.reveal) {
       inp.addEventListener('input', ev => {
         const val = ev.target.value.toUpperCase().replace(/[^A-Z]/g, '');
         userGrid[r][c].input = val;
+
+        triggerAutoSave();
+
         ev.target.value = val;
         triggerAutoSave();
         cell.classList.remove('correct');
