@@ -1125,11 +1125,11 @@ document.getElementById('modalDetail').innerHTML = `
   if (id === 'scramble')  renderScramble(area);
   if (id === 'memory')    renderMemory(area);
   if (id === 'math')      renderMath(area);
-
+  gameActive = true;
   renderLeaderboard(id);
   startTimer();
   startAutoSave();
-  gameActive = true;
+  
 }
 
 function clearGame() {
