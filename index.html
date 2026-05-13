@@ -693,6 +693,7 @@ let gameActive     = false;
 let scores         = {};
 let loadedSave     = null;   // FIX: renamed from loadedSavedGame, always scoped to current user
 let dynamicGames   = [];
+let crosswordData = null;
 let autoSaveInterval = null;
 let autoSaveTimeout  = null;
 let lobbyFocusIndex  = -1;
@@ -897,6 +898,11 @@ function getCurrentGameState() {
       col:       el.dataset.c || null
     })),
     memory: {
+
+      crosswordData:
+      currentGame === 'crossword'
+      ? crosswordData
+      : null,
       sudokuPuzzle:   sudokuPuzzle.length  ? JSON.parse(JSON.stringify(sudokuPuzzle))   : null,
       sudokuSolution: sudokuSolution.length ? JSON.parse(JSON.stringify(sudokuSolution)) : null,
       sudokuGiven:    sudokuGiven.length    ? JSON.parse(JSON.stringify(sudokuGiven))    : null,
@@ -1925,6 +1931,38 @@ const CROSSWORD_WORD_POOL = [
 
   
 function renderCrossword(area) {
+ 
+if (
+  loadedSave &&
+  loadedSave.memory &&
+  loadedSave.memory.crosswordData
+) {
+
+  crosswordData =
+    loadedSave.memory.crosswordData;
+
+} else {
+
+  const seed =
+    userGameSeed(
+      currentUser.id,
+      'crossword'
+    );
+
+  const rand =
+    seededRand(seed);
+
+  crosswordData = {
+
+    words:
+
+      [...CROSSWORD_WORD_POOL]
+
+      .sort(() => rand() - 0.5)
+
+      .slice(0, 12)
+  };
+}
 
   const seed =
   userGameSeed(
@@ -1937,6 +1975,8 @@ const rand = seededRand(seed);
 
 
 const selectedWords =
+  crosswordData.words;
+
 
   [...CROSSWORD_WORD_POOL]
 
