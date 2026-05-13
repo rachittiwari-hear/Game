@@ -1195,8 +1195,27 @@ submitBtn.disabled = true;
 
   // Crossword
   if (currentGame === 'crossword') {
-    completed = checkCrosswordComplete();
+
+  try {
+
+    completed =
+      checkCrosswordComplete();
+
+    console.log(
+      'Crossword complete:',
+      completed
+    );
+
+  } catch(e) {
+
+    console.error(
+      'Crossword submit error:',
+      e
+    );
+
+    completed = false;
   }
+}
 
   
 
