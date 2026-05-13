@@ -1147,7 +1147,23 @@ document.getElementById('modalDetail').innerHTML = `
   area.innerHTML = ``;
 
   if (id === 'sudoku')    renderSudoku(area);
-  if (id === 'crossword') renderCrossword(area);
+  if (id === 'crossword') {
+
+  if (
+    loadedSave &&
+    loadedSave.memory &&
+    loadedSave.memory.crosswordData
+  ) {
+
+    selectedWords =
+      loadedSave.memory.crosswordData.selectedWords || [];
+
+    userGrid =
+      loadedSave.memory.crosswordData.userGrid || [];
+  }
+
+  renderCrossword(area);
+}
   if (id === 'scramble')  renderScramble(area);
   if (id === 'memory')    renderMemory(area);
   if (id === 'math')      renderMath(area);
@@ -2000,7 +2016,7 @@ const rand = seededRand(seed);
 
 
 
-let selectedWords =
+selectedWords =
   crosswordData.words;
 
 
@@ -2033,7 +2049,7 @@ if (
         'crossword'
       )
     );
-
+if (!selectedWords || !selectedWords.length) {
   selectedWords =
 
     [...CROSSWORD_WORD_POOL]
@@ -2068,7 +2084,7 @@ if (
         num: i + 1
       };
     });
-
+}
 } else {
 
   selectedWords =
