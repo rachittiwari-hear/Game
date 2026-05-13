@@ -693,11 +693,6 @@ let gameActive     = false;
 let scores         = {};
 let loadedSave     = null;   // FIX: renamed from loadedSavedGame, always scoped to current user
 let dynamicGames   = [];
-let selectedWords = [];
-
-let userGrid = [];
-
-let crosswordData = null;
 let autoSaveInterval = null;
 let autoSaveTimeout  = null;
 let lobbyFocusIndex  = -1;
@@ -902,33 +897,6 @@ function getCurrentGameState() {
       col:       el.dataset.c || null
     })),
     memory: {
-crosswordData:
-
-  currentGame === 'crossword'
-
-    ? {
-
-        selectedWords:
-
-          JSON.parse(
-            JSON.stringify(
-              selectedWords
-            )
-          ),
-
-        userGrid:
-
-          JSON.parse(
-            JSON.stringify(
-              userGrid
-            )
-          )
-
-      }
-
-    : null,
-
-
       sudokuPuzzle:   sudokuPuzzle.length  ? JSON.parse(JSON.stringify(sudokuPuzzle))   : null,
       sudokuSolution: sudokuSolution.length ? JSON.parse(JSON.stringify(sudokuSolution)) : null,
       sudokuGiven:    sudokuGiven.length    ? JSON.parse(JSON.stringify(sudokuGiven))    : null,
@@ -1147,26 +1115,7 @@ document.getElementById('modalDetail').innerHTML = `
   area.innerHTML = ``;
 
   if (id === 'sudoku')    renderSudoku(area);
-  if (id === 'crossword') {
-
-  if (
-    loadedSave &&
-    loadedSave.memory &&
-    loadedSave.memory.crosswordData
-  ) {
-
-    selectedWords =
-      loadedSave.memory.crosswordData.selectedWords || [];
-
-    userGrid = JSON.parse(
-    JSON.stringify(
-    loadedSave.memory.crosswordData.userGrid || []
-    )
-  );
-  }
-
-  renderCrossword(area);
-}
+  if (id === 'crossword') renderCrossword(area);
   if (id === 'scramble')  renderScramble(area);
   if (id === 'memory')    renderMemory(area);
   if (id === 'math')      renderMath(area);
@@ -1976,38 +1925,6 @@ const CROSSWORD_WORD_POOL = [
 
   
 function renderCrossword(area) {
- 
-if (
-  loadedSave &&
-  loadedSave.memory &&
-  loadedSave.memory.crosswordData
-) {
-
-  crosswordData =
-    loadedSave.memory.crosswordData;
-
-} else {
-
-  const seed =
-    userGameSeed(
-      currentUser.id,
-      'crossword'
-    );
-
-  const rand =
-    seededRand(seed);
-
-  crosswordData = {
-
-    words:
-
-      [...CROSSWORD_WORD_POOL]
-
-      .sort(() => rand() - 0.5)
-
-      .slice(0, 12)
-  };
-}
 
   const seed =
   userGameSeed(
@@ -2019,9 +1936,7 @@ const rand = seededRand(seed);
 
 
 
-selectedWords =
-  crosswordData.words;
-
+const selectedWords =
 
   [...CROSSWORD_WORD_POOL]
 
@@ -2038,88 +1953,125 @@ selectedWords =
   // Pick word set based on user seed — different user = different set
   
 
-if (
-  !loadedSave ||
-  !loadedSave.memory ||
-  !loadedSave.memory.crosswordData ||
-  !loadedSave.memory.crosswordData.selectedWords
-) {
+buildCrossword(
+  document.getElementById('cwContainer'),
 
-  const rand = seededRand(
-  userGameSeed(
-    currentUser.id,
-    'crossword'
-  )
-);
+  selectedWords.map((w, i) => {
 
-const isRestoredGame =
+const dir =
+  i % 2 === 0
+    ? 'A'
+    : 'D';
+    
+let row = 0;
+let col = 0;
 
-  loadedSave &&
-  loadedSave.memory &&
-  loadedSave.memory.crosswordData &&
-  loadedSave.memory.crosswordData.selectedWords &&
-  loadedSave.memory.crosswordData.selectedWords.length;
+if (i === 0) {
 
-if (isRestoredGame) {
+  row = 7;
+  col = 1;
 
-  selectedWords = JSON.parse(
-    JSON.stringify(
-      loadedSave.memory.crosswordData.selectedWords
-    )
-  );
-
-}
-if (!isRestoredGame) {
-  selectedWords =
-
-    [...CROSSWORD_WORD_POOL]
-
-    .filter(w =>
-      w.word.length <= 13
-    )
-
-    .sort(() => rand() - 0.5)
-
-    .slice(0, 12)
-
-    .map((w, i) => {
-
-      const dir =
-        i % 2 === 0
-          ? 'A'
-          : 'D';
-
-      return {
-
-        ...w,
-
-        dir,
-
-        row:
-          Math.floor(rand() * 12),
-
-        col:
-          Math.floor(rand() * 12),
-
-        num: i + 1
-      };
-    });
-}
 } else {
 
-  selectedWords =
-    loadedSave.memory
-      .crosswordData
-      .selectedWords;
+  let placed = false;
+
+  for (const placedWord of selectedWords.slice(0, i)) {
+
+    for (const shared of w.word) {
+
+      if (
+        placedWord.word.includes(shared)
+      ) {
+
+        const sharedIndex1 =
+          w.word.indexOf(shared);
+
+        const sharedIndex2 =
+          placedWord.word.indexOf(shared);
+
+        if (dir === 'A') {
+
+          row =
+            placedWord.row +
+            sharedIndex2;
+
+          col =
+            placedWord.col -
+            sharedIndex1;
+
+        } else {
+
+          row =
+            placedWord.row -
+            sharedIndex1;
+
+          col =
+            placedWord.col +
+            sharedIndex2;
+        }
+
+        const fits =
+          row >= 0 &&
+          col >= 0 &&
+          (
+            dir === 'A'
+              ? col + w.word.length <= 15
+              : row + w.word.length <= 15
+          );
+
+        if (fits) {
+          placed = true;
+          break;
+        }
+      }
+    }
+
+    if (placed) break;
+  }
+
+  if (!placed) {
+
+    for (let tries = 0; tries < 100; tries++) {
+
+      row =
+        Math.floor(Math.random() * 15);
+
+      col =
+        Math.floor(Math.random() * 15);
+
+      const fits =
+        dir === 'A'
+          ? col + w.word.length <= 15
+          : row + w.word.length <= 15;
+
+      if (fits) {
+        placed = true;
+        break;
+      }
+    }
+  }
 }
 
-buildCrossword(
-  document.getElementById(
-    'cwContainer'
-  ),
-  selectedWords
-);
+    
+return {
 
+  word: w.word,
+
+  clue: w.clue,
+
+  dir,
+
+  row: Math.max(0, Math.min(14, row)),
+
+  col: Math.max(0, Math.min(14, col)),
+
+  num: i + 1
+
+};
+
+
+  })
+);
 
 
   
@@ -2216,32 +2168,7 @@ grid[r][c] = {
     }
   });
 
-  userGrid =
-
-  loadedSave &&
-  loadedSave.memory &&
-  loadedSave.memory.crosswordData &&
-  loadedSave.memory.crosswordData.userGrid
-
-    ?
-
-    loadedSave.memory
-      .crosswordData
-      .userGrid
-
-    :
-
-    grid.map(row =>
-      row.map(cell =>
-        cell
-          ? {
-              ...cell,
-              input: ''
-            }
-          : null
-      )
-    );
-
+  const userGrid = grid.map(row => row.map(cell => cell ? { ...cell, input: '' } : null));
   const wordCorrect = new Set();
 
   function checkWord(p) {
@@ -2327,9 +2254,6 @@ if (cellData.reveal) {
       inp.addEventListener('input', ev => {
         const val = ev.target.value.toUpperCase().replace(/[^A-Z]/g, '');
         userGrid[r][c].input = val;
-
-        triggerAutoSave();
-
         ev.target.value = val;
         triggerAutoSave();
         cell.classList.remove('correct');
