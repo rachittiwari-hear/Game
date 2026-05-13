@@ -699,11 +699,6 @@ let lobbyFocusIndex  = -1;
 
 // per-game mutable state (used by save/restore)
 let sudokuPuzzle = [], sudokuSolution = [], sudokuGiven = [], sudokuSelected = null;
-  let crosswordData = {
-  selectedWords: [],
-  userGrid: [],
-  completed: false
-};
 let scrambleWords = [], scrambleIdx = 0, scrambleLetters = [], answerLetterMap = [];
 let memFlipped = [], memMatched = 0, memMoves = 0, memLock = false;
 let mathAnswered = 0, mathTotal = 10, mathStreak = 0;
@@ -905,7 +900,6 @@ function getCurrentGameState() {
       sudokuPuzzle:   sudokuPuzzle.length  ? JSON.parse(JSON.stringify(sudokuPuzzle))   : null,
       sudokuSolution: sudokuSolution.length ? JSON.parse(JSON.stringify(sudokuSolution)) : null,
       sudokuGiven:    sudokuGiven.length    ? JSON.parse(JSON.stringify(sudokuGiven))    : null,
-      crosswordData: JSON.parse(JSON.stringify(crosswordData)),
       scrambleWords:  scrambleWords.length  ? JSON.parse(JSON.stringify(scrambleWords))  : null,
       scrambleIdx,
       memMatched,
@@ -1125,11 +1119,11 @@ document.getElementById('modalDetail').innerHTML = `
   if (id === 'scramble')  renderScramble(area);
   if (id === 'memory')    renderMemory(area);
   if (id === 'math')      renderMath(area);
-  gameActive = true;
+
   renderLeaderboard(id);
   startTimer();
   startAutoSave();
-  
+  gameActive = true;
 }
 
 function clearGame() {
@@ -1428,10 +1422,6 @@ function restoreGameState() {
       }
     if (m.sudokuSolution) sudokuSolution = m.sudokuSolution;
     if (m.sudokuGiven)    sudokuGiven    = m.sudokuGiven;
-    if (m.crosswordData) {
-  crosswordData =
-    JSON.parse(JSON.stringify(m.crosswordData));
-}
     if (m.scrambleWords)  scrambleWords  = m.scrambleWords;
     if (m.scrambleIdx != null) scrambleIdx = m.scrambleIdx;
     if (m.memMatched  != null) memMatched  = m.memMatched;
@@ -1935,27 +1925,6 @@ const CROSSWORD_WORD_POOL = [
 
   
 function renderCrossword(area) {
-  if (
-  loadedSave &&
-  loadedSave.memory &&
-  loadedSave.memory.crosswordData
-) {
-
-  crosswordData =
-    JSON.parse(
-      JSON.stringify(
-        loadedSave.memory.crosswordData
-      )
-    );
-
-} else {
-
-  crosswordData = {
-    selectedWords: [],
-    userGrid: [],
-    completed: false
-  };
-}
 
   const seed =
   userGameSeed(
@@ -2104,29 +2073,7 @@ return {
   })
 );
 
-if (crosswordData.userGrid.length) {
 
-  crosswordData.userGrid.forEach((row, r) => {
-
-    if (!row) return;
-
-    row.forEach((val, c) => {
-
-      const el = document.querySelector(
-        `[data-r="${r}"][data-c="${c}"]`
-      );
-
-      if (el && val) {
-        el.value = val;
-      }
-
-    });
-
-  });
-
-}
-
-restoreGameState();
   
 }
 
@@ -2256,32 +2203,6 @@ grid[r][c] = {
     }
   }
 
-  function checkCrosswordComplete() {
-
-  let allCorrect = true;
-
-  document.querySelectorAll('.cw-input').forEach(inp => {
-
-    const r = parseInt(inp.dataset.r);
-    const c = parseInt(inp.dataset.c);
-
-    const expected =
-      userGrid[r][c].letter;
-
-    const actual =
-      (inp.value || '').toUpperCase();
-
-    if (expected && actual !== expected) {
-      allCorrect = false;
-    }
-
-  });
-
-  crosswordData.completed = allCorrect;
-
-  return allCorrect;
-}
-
   container.innerHTML = '';
   const gridWrap = document.createElement('div');
   gridWrap.className = 'crossword-grid-wrap';
@@ -2329,41 +2250,15 @@ if (cellData.reveal) {
     'rgba(255,255,255,0.12)';
 }
 
-     inp.dataset.r = r;
-inp.dataset.c = c;
-
-inp.addEventListener('input', ev => {
-
-  if (!gameActive) return;
-
-  const val =
-    ev.target.value
-      .toUpperCase()
-      .replace(/[^A-Z]/g, '');
-
-  userGrid[r][c].input = val;
-  if (!crosswordData.userGrid[r]) {
-  crosswordData.userGrid[r] = [];
-}
-
-crosswordData.userGrid[r][c] = val;
-
-  ev.target.value = val;
-
-  // SAVE TO CROSSWORD MEMORY
-  if (!crosswordData.userGrid[r]) {
-    crosswordData.userGrid[r] = [];
-  }
-
-  crosswordData.userGrid[r][c] = val;
-
-  triggerAutoSave();
-
-  cell.classList.remove('correct');
-
-  checkAllWords();
-
-});
+      inp.dataset.r = r; inp.dataset.c = c;
+      inp.addEventListener('input', ev => {
+        const val = ev.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+        userGrid[r][c].input = val;
+        ev.target.value = val;
+        triggerAutoSave();
+        cell.classList.remove('correct');
+        checkAllWords();
+      });
       inp.addEventListener('keydown', ev => {
         const moves = { ArrowRight:[0,1], ArrowLeft:[0,-1], ArrowDown:[1,0], ArrowUp:[-1,0] };
         if (moves[ev.key]) {
