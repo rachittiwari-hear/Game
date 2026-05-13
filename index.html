@@ -1282,13 +1282,23 @@ async function saveScore(gameId, score) {
   violations,
   timestamp: new Date().toISOString(),
 
-  board: currentGame === 'sudoku'
+  board:
+
+  currentGame === 'sudoku'
+
     ? JSON.stringify({
         puzzle: sudokuPuzzle,
         solution: sudokuSolution,
         given: sudokuGiven
       })
-    : ''
+
+  : currentGame === 'crossword'
+
+    ? JSON.stringify({
+        crosswordData
+      })
+
+  : ''
 }).catch(() => {});
   if (res && res.error === 'already_played') {
 
