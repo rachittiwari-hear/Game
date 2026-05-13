@@ -1139,44 +1139,44 @@ function clearGame() {
 }
 
 async function submitCurrentGame() {
-  const submitBtn =
-  document.getElementById('submitBtn');
 
-submitBtn.disabled = true;
+  const submitBtn =
+    document.getElementById('submitBtn');
+
+  submitBtn.disabled = true;
 
   if (!gameActive || !currentGame) {
 
-  submitBtn.disabled = false;
-
-  return;
-}
+    submitBtn.disabled = false;
+    return;
+  }
 
   let completed = false;
 
   // Sudoku
- if (currentGame === 'sudoku') {
+  if (currentGame === 'sudoku') {
 
-  syncSudokuFromDOM();
+    syncSudokuFromDOM();
 
-  await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 50));
 
-  const allFilled = sudokuPuzzle.every(row =>
-    row.every(cell => cell !== 0)
-  );
+    const allFilled = sudokuPuzzle.every(row =>
+      row.every(cell => cell !== 0)
+    );
 
-  if (!allFilled) {
+    if (!allFilled) {
 
-  showToast(
-    'Complete the Sudoku before submitting'
-  );
+      showToast(
+        'Complete the Sudoku before submitting'
+      );
 
-  submitBtn.disabled = false;
+      submitBtn.disabled = false;
 
-  return;
-}
+      return;
+    }
 
-  completed = checkSudokuComplete();
-}
+    completed = checkSudokuComplete();
+  }
 
   // Memory
   if (currentGame === 'memory') {
@@ -1194,20 +1194,43 @@ submitBtn.disabled = true;
   }
 
   // Crossword
- if (currentGame === 'crossword') {
+  if (currentGame === 'crossword') {
 
-  const allInputs =
-    [...document.querySelectorAll('.cw-input')];
+    const allInputs =
+      [...document.querySelectorAll('.cw-input')];
 
-  const hasEmpty =
-    allInputs.some(inp =>
-      !inp.value.trim()
+    const hasEmpty =
+      allInputs.some(inp =>
+        !inp.value.trim()
+      );
+
+    if (hasEmpty) {
+
+      showToast(
+        'Complete the Crossword before submitting'
+      );
+
+      submitBtn.disabled = false;
+
+      return;
+    }
+
+    completed =
+      checkCrosswordComplete();
+  }
+
+  let finalScore = completed ? 5 : 0;
+
+  const res =
+    await saveScore(
+      currentGame,
+      finalScore
     );
 
-  if (hasEmpty) {
+  if (res && res.error === 'already_played') {
 
     showToast(
-      'Complete the Crossword before submitting'
+      'You already submitted this game'
     );
 
     submitBtn.disabled = false;
@@ -1215,65 +1238,34 @@ submitBtn.disabled = true;
     return;
   }
 
-  completed =
-    checkCrosswordComplete();
-}
+  clearGame();
 
-  try {
-
-    completed =
-      checkCrosswordComplete();
-
-    console.log(
-      'Crossword complete:',
-      completed
-    );
-
-  } catch(e) {
-
-    console.error(
-      'Crossword submit error:',
-      e
-    );
-
-    completed = false;
-  }
-}
-
-  
-
-  let finalScore = completed ? 5 : 0;
-
-  const res = await saveScore(currentGame, finalScore);
-
-if (res && res.error === 'already_played') {
-
-  showToast('You already submitted this game');
-
-  submitBtn.disabled = false;
-
-  return;
-}
-clearGame();
   if (completed) {
 
-    document.getElementById('modalTitle').textContent =
+    document.getElementById(
+      'modalTitle'
+    ).textContent =
       '🎉 Congratulations!';
 
-    document.getElementById('modalDetail').innerHTML =
+    document.getElementById(
+      'modalDetail'
+    ).innerHTML =
       'You completed the game correctly and earned 5 points.';
 
   } else {
 
-    document.getElementById('modalTitle').textContent =
+    document.getElementById(
+      'modalTitle'
+    ).textContent =
       '😔 Better Luck Next Time';
 
-    document.getElementById('modalDetail').innerHTML =
+    document.getElementById(
+      'modalDetail'
+    ).innerHTML =
       'Game was incomplete or incorrect. You earned 0 points.';
   }
 
   showResult(finalScore);
-  
 
   // Clear saved progress after submit
   sheetsRequest({
@@ -1283,10 +1275,16 @@ clearGame();
   }).catch(() => {});
 
   try {
+
     localStorage.removeItem(
-      progressKey(currentUser.id, currentGame)
+      progressKey(
+        currentUser.id,
+        currentGame
+      )
     );
+
   } catch(e) {}
+
   submitBtn.disabled = false;
 }
 async function saveScore(gameId, score) {
