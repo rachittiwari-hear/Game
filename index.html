@@ -904,7 +904,8 @@ function getCurrentGameState() {
       currentGame === 'crossword'
 
         ? {
-        selectedWords
+        selectedWords,
+          userGrid
         }
 
       : null,
@@ -2160,7 +2161,32 @@ grid[r][c] = {
     }
   });
 
-  const userGrid = grid.map(row => row.map(cell => cell ? { ...cell, input: '' } : null));
+const userGrid =
+
+  loadedSave &&
+  loadedSave.memory &&
+  loadedSave.memory.crosswordData &&
+  loadedSave.memory.crosswordData.userGrid
+
+    ?
+
+    loadedSave.memory
+      .crosswordData
+      .userGrid
+
+    :
+
+    grid.map(row =>
+      row.map(cell =>
+        cell
+          ? {
+              ...cell,
+              input: ''
+            }
+          : null
+      )
+    );
+
   const wordCorrect = new Set();
 
   function checkWord(p) {
