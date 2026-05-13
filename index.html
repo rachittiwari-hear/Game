@@ -1414,7 +1414,11 @@ function restoreGameState() {
   timerSeconds = loadedSave.timerSeconds || 0;
   liveScore    = loadedSave.liveScore    || 0;
   violations   = loadedSave.violations   || 0;
-  document.getElementById('liveScore').textContent = liveScore;
+  const ls =
+  document.getElementById('liveScore');
+
+if (ls)
+  ls.textContent = liveScore;
 
   if (loadedSave.memory) {
     const m = loadedSave.memory;
