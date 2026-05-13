@@ -2256,6 +2256,32 @@ grid[r][c] = {
     }
   }
 
+  function checkCrosswordComplete() {
+
+  let allCorrect = true;
+
+  document.querySelectorAll('.cw-input').forEach(inp => {
+
+    const r = parseInt(inp.dataset.r);
+    const c = parseInt(inp.dataset.c);
+
+    const expected =
+      userGrid[r][c].letter;
+
+    const actual =
+      (inp.value || '').toUpperCase();
+
+    if (expected && actual !== expected) {
+      allCorrect = false;
+    }
+
+  });
+
+  crosswordData.completed = allCorrect;
+
+  return allCorrect;
+}
+
   container.innerHTML = '';
   const gridWrap = document.createElement('div');
   gridWrap.className = 'crossword-grid-wrap';
