@@ -1381,10 +1381,7 @@ function stopAutoSave() {
 }
 
 // ─── ANTI-CHEAT ──────────────────────────────────────
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && gameActive) triggerAntiCheat();
-});
-window.addEventListener('blur', () => { if (gameActive) triggerAntiCheat(); });
+
 document.addEventListener('contextmenu', e => { if (gameActive) e.preventDefault(); });
 
 
@@ -1585,7 +1582,9 @@ function selectSudokuCell(r, c) {
     if (selVal && sudokuPuzzle[er][ec] === selVal) el.classList.add('same-num');
   });
 }
-
+function triggerAntiCheat() {
+  return;
+}
 function enterSudokuNum(n) {
   if (!sudokuSelected) return;
   const [r, c] = sudokuSelected;
@@ -2108,6 +2107,51 @@ function renderCrossword(area) {
     document.getElementById('cwContainer'),
     crosswordData
   );
+}
+  function checkCrosswordComplete() {
+
+  if (!crosswordData) return false;
+
+  for (const wordObj of crosswordData) {
+
+    const {
+      word,
+      row,
+      col,
+      dir
+    } = wordObj;
+
+    for (let i = 0; i < word.length; i++) {
+
+      const r =
+        dir === 'A'
+          ? row
+          : row + i;
+
+      const c =
+        dir === 'A'
+          ? col + i
+          : col;
+
+      const input =
+        document.querySelector(
+          `[data-r="${r}"][data-c="${c}"]`
+        );
+
+      if (!input) return false;
+
+      const val =
+        (input.value || '')
+          .trim()
+          .toUpperCase();
+
+      if (val !== word[i]) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 function buildCrossword(container, WORDS) {
