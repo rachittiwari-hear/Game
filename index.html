@@ -694,6 +694,9 @@ let scores         = {};
 let loadedSave     = null;   // FIX: renamed from loadedSavedGame, always scoped to current user
 let dynamicGames   = [];
 let selectedWords = [];
+
+let userGrid = [];
+
 let crosswordData = null;
 let autoSaveInterval = null;
 let autoSaveTimeout  = null;
@@ -899,16 +902,32 @@ function getCurrentGameState() {
       col:       el.dataset.c || null
     })),
     memory: {
-      crosswordData:
+crosswordData:
 
-      currentGame === 'crossword'
+  currentGame === 'crossword'
 
-        ? {
-        selectedWords,
-          userGrid
-        }
+    ? {
 
-      : null,
+        selectedWords:
+
+          JSON.parse(
+            JSON.stringify(
+              selectedWords
+            )
+          ),
+
+        userGrid:
+
+          JSON.parse(
+            JSON.stringify(
+              userGrid
+            )
+          )
+
+      }
+
+    : null,
+
 
       sudokuPuzzle:   sudokuPuzzle.length  ? JSON.parse(JSON.stringify(sudokuPuzzle))   : null,
       sudokuSolution: sudokuSolution.length ? JSON.parse(JSON.stringify(sudokuSolution)) : null,
@@ -2161,7 +2180,7 @@ grid[r][c] = {
     }
   });
 
-const userGrid =
+  userGrid =
 
   loadedSave &&
   loadedSave.memory &&
