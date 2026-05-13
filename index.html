@@ -2342,6 +2342,11 @@ inp.addEventListener('input', ev => {
       .replace(/[^A-Z]/g, '');
 
   userGrid[r][c].input = val;
+  if (!crosswordData.userGrid[r]) {
+  crosswordData.userGrid[r] = [];
+}
+
+crosswordData.userGrid[r][c] = val;
 
   ev.target.value = val;
 
