@@ -1194,7 +1194,30 @@ submitBtn.disabled = true;
   }
 
   // Crossword
-  if (currentGame === 'crossword') {
+ if (currentGame === 'crossword') {
+
+  const allInputs =
+    [...document.querySelectorAll('.cw-input')];
+
+  const hasEmpty =
+    allInputs.some(inp =>
+      !inp.value.trim()
+    );
+
+  if (hasEmpty) {
+
+    showToast(
+      'Complete the Crossword before submitting'
+    );
+
+    submitBtn.disabled = false;
+
+    return;
+  }
+
+  completed =
+    checkCrosswordComplete();
+}
 
   try {
 
