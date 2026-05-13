@@ -2047,12 +2047,29 @@ if (
 
   const rand =
     seededRand(
+      const isRestoredGame =
+
+  loadedSave &&
+  loadedSave.memory &&
+  loadedSave.memory.crosswordData &&
+  loadedSave.memory.crosswordData.selectedWords &&
+  loadedSave.memory.crosswordData.selectedWords.length;
+
+if (isRestoredGame) {
+
+  selectedWords = JSON.parse(
+    JSON.stringify(
+      loadedSave.memory.crosswordData.selectedWords
+    )
+  );
+
+}
       userGameSeed(
         currentUser.id,
         'crossword'
       )
     );
-if (!selectedWords || !selectedWords.length) {
+if (!isRestoredGame) {
   selectedWords =
 
     [...CROSSWORD_WORD_POOL]
