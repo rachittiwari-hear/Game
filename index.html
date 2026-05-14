@@ -291,6 +291,7 @@
 
   .cw-cell.selected { background: rgba(124,106,255,0.25); }
   .cw-cell.highlighted { background: rgba(124,106,255,0.1); }
+  .cw-cell.hint-cell { background: rgba(94,196,255,0.06); border-color: rgba(94,196,255,0.25); }
   
 .cw-num {
 
@@ -959,7 +960,7 @@ function progressKey(userId, gameId) {
 
 function getCurrentGameState() {
   return {
-    userId:       currentUser.id, // FIX: embed userId in save data for verification
+    userId:       currentUser.id,
     game:         currentGame,
     timerSeconds,
     liveScore,
@@ -968,12 +969,13 @@ function getCurrentGameState() {
     inputs: [...document.querySelectorAll('[data-r][data-c]')].map(el => ({
       id:        el.id   || null,
       className: el.className || null,
-      value:     el.tagName === 'INPUT' ? el.value : el.textContent,
+      // For disabled (revealed) cells, save empty string — never save the pre-filled letter
+      // so restore never tries to overwrite a revealed cell with a stale value
+      value:     (el.tagName === 'INPUT' && el.disabled) ? '' : (el.tagName === 'INPUT' ? el.value : el.textContent),
       row:       el.dataset.r || null,
       col:       el.dataset.c || null
     })),
     memory: {
-      
       sudokuPuzzle:   sudokuPuzzle.length  ? JSON.parse(JSON.stringify(sudokuPuzzle))   : null,
       sudokuSolution: sudokuSolution.length ? JSON.parse(JSON.stringify(sudokuSolution)) : null,
       sudokuGiven:    sudokuGiven.length    ? JSON.parse(JSON.stringify(sudokuGiven))    : null,
@@ -1170,7 +1172,8 @@ try {
 }
 
 showScreen('game-screen');
-restoreGameState();
+// NOTE: restoreGameState() is called AFTER render below, not here,
+// so the DOM elements exist when restore tries to find them.
 setTimeout(() => {
 
   document.getElementById('modalIcon').textContent = '⚠️';
@@ -1193,10 +1196,13 @@ document.getElementById('modalDetail').innerHTML = `
   area.innerHTML = ``;
 
   if (id === 'sudoku')    renderSudoku(area);
-  if (id === 'crossword') renderCrossword(area);
+  if (id === 'crossword') renderCrossword(area); // crossword restore happens inside buildCrossword
   if (id === 'scramble')  renderScramble(area);
   if (id === 'memory')    renderMemory(area);
   if (id === 'math')      renderMath(area);
+
+  // Restore state after render (DOM now exists) — crossword skips input restore here
+  restoreGameState();
 
   renderLeaderboard(id);
   startTimer();
@@ -1532,50 +1538,45 @@ function restoreGameState() {
     loadedSave = null;
     return;
   }
+
+  // Always restore meta-state for every game
   timerSeconds = loadedSave.timerSeconds || 0;
   liveScore    = loadedSave.liveScore    || 0;
   violations   = loadedSave.violations   || 0;
-  const ls =
-  document.getElementById('liveScore');
-
-if (ls)
-  ls.textContent = liveScore;
+  const ls = document.getElementById('liveScore');
+  if (ls) ls.textContent = liveScore;
 
   if (loadedSave.memory) {
     const m = loadedSave.memory;
-    if (m.crosswordData)
-  crosswordData = m.crosswordData;
-    if (m.sudokuPuzzle) {
-
-      sudokuPuzzle =
-      JSON.parse(JSON.stringify(m.sudokuPuzzle));
-
-      }
-    if (m.sudokuSolution) sudokuSolution = m.sudokuSolution;
-    if (m.sudokuGiven)    sudokuGiven    = m.sudokuGiven;
-    if (m.scrambleWords)  scrambleWords  = m.scrambleWords;
-    if (m.scrambleIdx != null) scrambleIdx = m.scrambleIdx;
-    if (m.memMatched  != null) memMatched  = m.memMatched;
-    if (m.memMoves    != null) memMoves    = m.memMoves;
+    // crosswordData intentionally NOT restored — grid always regenerates from seed
+    // so clue numbers and layout are always fresh and correct
+    if (m.sudokuPuzzle)    sudokuPuzzle   = JSON.parse(JSON.stringify(m.sudokuPuzzle));
+    if (m.sudokuSolution)  sudokuSolution = m.sudokuSolution;
+    if (m.sudokuGiven)     sudokuGiven    = m.sudokuGiven;
+    if (m.scrambleWords)   scrambleWords  = m.scrambleWords;
+    if (m.scrambleIdx  != null) scrambleIdx  = m.scrambleIdx;
+    if (m.memMatched   != null) memMatched   = m.memMatched;
+    if (m.memMoves     != null) memMoves     = m.memMoves;
     if (m.mathAnswered != null) mathAnswered = m.mathAnswered;
     if (m.mathStreak   != null) mathStreak   = m.mathStreak;
   }
 
+  // Crossword typed-letter restore happens inside buildCrossword (where userGrid is in scope)
+  // so we skip inputs here for crossword only
+  if (currentGame === 'crossword') return;
+
+  // Restore typed inputs for all other games
   if (loadedSave.inputs && loadedSave.inputs.length) {
     setTimeout(() => {
       loadedSave.inputs.forEach(inp => {
-        if (
-  currentGame === 'sudoku' &&
-  inp.row !== null &&
-  inp.value
-) {
-  sudokuPuzzle[inp.row][inp.col] =
-    parseInt(inp.value) || 0;
-}
+        if (!inp.value || inp.value.trim() === '') return;
+        if (currentGame === 'sudoku' && inp.row !== null && inp.value) {
+          sudokuPuzzle[inp.row][inp.col] = parseInt(inp.value) || 0;
+        }
         let el = null;
         if (inp.id) el = document.getElementById(inp.id);
         if (!el && inp.row !== null) el = document.querySelector(`[data-r="${inp.row}"][data-c="${inp.col}"]`);
-        if (!el) return;
+        if (!el || el.disabled) return; // never overwrite revealed/disabled cells
         if (el.tagName === 'INPUT') el.value = inp.value || '';
         else el.textContent = inp.value || '';
       });
@@ -2057,152 +2058,153 @@ const CROSSWORD_WORD_POOL = [
 
 
   
-function renderCrossword(area) {
+// ── Crossword placement engine ──────────────────────
+// Places words on a 15×15 grid using intersection-first
+// logic. Every placed word is checked against the actual
+// letter grid so conflicts are impossible.
+function placeCrosswordWords(wordPool, seed) {
+  const SIZE = 15;
+  const rand = seededRand(seed);
 
-  if (
-    loadedSave &&
-    loadedSave.memory &&
-    loadedSave.memory.crosswordData
-  ) {
+  // Seeded shuffle
+  function seededShuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
 
-    crosswordData =
-      loadedSave.memory.crosswordData;
+  // letter grid: null = empty, string = letter
+  const grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
 
-  } else {
+  function canPlace(word, row, col, dir) {
+    if (dir === 'A') {
+      if (col < 0 || col + word.length > SIZE || row < 0 || row >= SIZE) return false;
+      // cell before word must be empty or out-of-bounds
+      if (col > 0 && grid[row][col - 1] !== null) return false;
+      // cell after word must be empty or out-of-bounds
+      if (col + word.length < SIZE && grid[row][col + word.length] !== null) return false;
+      for (let i = 0; i < word.length; i++) {
+        const c = col + i;
+        const existing = grid[row][c];
+        if (existing !== null && existing !== word[i]) return false;
+        // if placing a fresh letter, neighbours above/below must be empty (no unintended across-words)
+        if (existing === null) {
+          if (row > 0 && grid[row - 1][c] !== null) return false;
+          if (row < SIZE - 1 && grid[row + 1][c] !== null) return false;
+        }
+      }
+    } else {
+      if (row < 0 || row + word.length > SIZE || col < 0 || col >= SIZE) return false;
+      if (row > 0 && grid[row - 1][col] !== null) return false;
+      if (row + word.length < SIZE && grid[row + word.length][col] !== null) return false;
+      for (let i = 0; i < word.length; i++) {
+        const r = row + i;
+        const existing = grid[r][col];
+        if (existing !== null && existing !== word[i]) return false;
+        if (existing === null) {
+          if (col > 0 && grid[r][col - 1] !== null) return false;
+          if (col < SIZE - 1 && grid[r][col + 1] !== null) return false;
+        }
+      }
+    }
+    return true;
+  }
 
-    const seed =
-      userGameSeed(
-        currentUser.id,
-        'crossword'
-      );
+  function placeWord(word, row, col, dir) {
+    for (let i = 0; i < word.length; i++) {
+      const r = dir === 'A' ? row : row + i;
+      const c = dir === 'A' ? col + i : col;
+      grid[r][c] = word[i];
+    }
+  }
 
-    const rand = seededRand(seed);
+  // Pick up to 15 words by length so we have variety
+  const candidates = seededShuffle(
+    wordPool.filter(w => w.word.length >= 4 && w.word.length <= 13)
+  );
 
-    const selectedWords =
-      [...CROSSWORD_WORD_POOL]
-        .filter(w => w.word.length <= 13)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 12);
+  const placed = [];
 
-    area.innerHTML =
-      `<div class="crossword-container"
-        id="cwContainer"></div>`;
+  for (const entry of candidates) {
+    if (placed.length >= 12) break;
+    const word = entry.word;
 
-    crosswordData =
-      selectedWords.map((w, i) => {
+    if (placed.length === 0) {
+      // First word: horizontal, centred-ish
+      const row = 7;
+      const col = Math.floor((SIZE - word.length) / 2);
+      placeWord(word, row, col, 'A');
+      placed.push({ word, clue: entry.clue, dir: 'A', row, col });
+      continue;
+    }
 
-        const dir =
-          i % 2 === 0 ? 'A' : 'D';
+    // Try to intersect with every already-placed word
+    const dirs = seededShuffle(['A', 'D']);
+    let didPlace = false;
 
-        let row = 0;
-        let col = 0;
+    for (const dir of dirs) {
+      if (didPlace) break;
+      // Shuffle placed words so we spread across the grid
+      for (const pw of seededShuffle(placed)) {
+        if (didPlace) break;
+        // Try each letter of the new word against each letter of the placed word
+        for (let ni = 0; ni < word.length && !didPlace; ni++) {
+          for (let pi = 0; pi < pw.word.length && !didPlace; pi++) {
+            if (word[ni] !== pw.word[pi]) continue;
 
-        if (i === 0) {
-
-          row = 7;
-          col = 1;
-
-        } else {
-
-          let placed = false;
-
-          for (const placedWord of selectedWords.slice(0, i)) {
-
-            for (const shared of w.word) {
-
-              if (
-                placedWord.word.includes(shared)
-              ) {
-
-                const sharedIndex1 =
-                  w.word.indexOf(shared);
-
-                const sharedIndex2 =
-                  placedWord.word.indexOf(shared);
-
-                if (dir === 'A') {
-
-                  row =
-                    placedWord.row +
-                    sharedIndex2;
-
-                  col =
-                    placedWord.col -
-                    sharedIndex1;
-
-                } else {
-
-                  row =
-                    placedWord.row -
-                    sharedIndex1;
-
-                  col =
-                    placedWord.col +
-                    sharedIndex2;
-                }
-
-                const fits =
-                  row >= 0 &&
-                  col >= 0 &&
-                  (
-                    dir === 'A'
-                      ? col + w.word.length <= 15
-                      : row + w.word.length <= 15
-                  );
-
-                if (fits) {
-                  placed = true;
-                  break;
-                }
-              }
+            let row, col;
+            if (dir === 'A') {
+              // new word is Across, intersects a Down word
+              if (pw.dir !== 'D') continue;
+              row = pw.row + pi;      // intersection row
+              col = pw.col - ni;      // new word starts ni cells left of intersection
+            } else {
+              // new word is Down, intersects an Across word
+              if (pw.dir !== 'A') continue;
+              row = pw.row - ni;
+              col = pw.col + pi;
             }
 
-            if (placed) break;
-          }
-
-          if (!placed) {
-
-            for (let tries = 0; tries < 100; tries++) {
-
-              row =
-                Math.floor(Math.random() * 15);
-
-              col =
-                Math.floor(Math.random() * 15);
-
-              const fits =
-                dir === 'A'
-                  ? col + w.word.length <= 15
-                  : row + w.word.length <= 15;
-
-              if (fits) {
-                placed = true;
-                break;
-              }
+            if (canPlace(word, row, col, dir)) {
+              placeWord(word, row, col, dir);
+              placed.push({ word, clue: entry.clue, dir, row, col });
+              didPlace = true;
             }
           }
         }
-
-        return {
-
-          word: w.word,
-          clue: w.clue,
-          dir,
-
-          row: Math.max(
-            0,
-            Math.min(14, row)
-          ),
-
-          col: Math.max(
-            0,
-            Math.min(14, col)
-          ),
-
-          num: i + 1
-        };
-      });
+      }
+    }
   }
+
+  // Number the words
+  return placed.map((p, i) => ({ ...p, num: i + 1 }));
+}
+
+// Validate saved crosswordData has zero letter conflicts
+function isCrosswordDataValid(data) {
+  if (!data || !data.length) return false;
+  const SIZE = 15;
+  const grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+  for (const p of data) {
+    for (let i = 0; i < p.word.length; i++) {
+      const r = p.dir === 'A' ? p.row : p.row + i;
+      const c = p.dir === 'A' ? p.col + i : p.col;
+      if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) return false;
+      if (grid[r][c] !== null && grid[r][c] !== p.word[i]) return false;
+      grid[r][c] = p.word[i];
+    }
+  }
+  return true;
+}
+
+function renderCrossword(area) {
+  // Always regenerate from seed — numbering is now canonical (grid scan order)
+  // so saved crosswordData from old versions would have wrong clue numbers.
+  const seed = userGameSeed(currentUser.id, 'crossword');
+  crosswordData = placeCrosswordWords(CROSSWORD_WORD_POOL, seed);
 
   area.innerHTML =
     `<div class="crossword-container"
@@ -2284,82 +2286,92 @@ const grid = Array.from(
   gridEl.className =
     'crossword-grid';
 
+  // FIX: track only words that actually get rendered — crosswordData must match DOM exactly
+  const renderedWords = [];
+
   WORDS.forEach(p => {
+    // Skip if out of bounds
     if (
-  (p.dir === 'A' && p.col + p.word.length > SIZE) ||
-  (p.dir === 'D' && p.row + p.word.length > SIZE)
-) {
-  return;
-}
-   
-let canPlace = true;
+      (p.dir === 'A' && p.col + p.word.length > SIZE) ||
+      (p.dir === 'D' && p.row + p.word.length > SIZE)
+    ) return;
 
-for (let i = 0; i < p.word.length; i++) {
-
-  const r =
-    p.dir === 'A'
-      ? p.row
-      : p.row + i;
-
-  const c =
-    p.dir === 'A'
-      ? p.col + i
-      : p.col;
-
-  if (
-    r >= SIZE ||
-    c >= SIZE
-  ) {
-    canPlace = false;
-    break;
-  }
-
-  if (
-    grid[r][c] &&
-    grid[r][c].letter &&
-    grid[r][c].letter !== p.word[i]
-  ) {
-    canPlace = false;
-    break;
-  }
-}
-
-if (!canPlace) return;
-
+    // Skip if any cell conflicts with already-placed letters
     for (let i = 0; i < p.word.length; i++) {
       const r = p.dir === 'A' ? p.row : p.row + i;
       const c = p.dir === 'A' ? p.col + i : p.col;
-      
-        if (
-        r < SIZE &&
-        c < SIZE &&
-        grid[r][c] !== '#'
-        ) {
-
-     
-
-
-grid[r][c] = {
-
-  letter: p.word[i],
-
-  num: i === 0 ? p.num : null,
-
-  reveal:
-    i === 0 ||
-    i === Math.floor(
-      p.word.length / 2
-    )
-};
-
-
-
-
-        }
+      if (r >= SIZE || c >= SIZE) return;
+      if (grid[r][c] && grid[r][c].letter && grid[r][c].letter !== p.word[i]) return;
     }
+
+    // Place word on grid — preserve existing num if cell already has one
+    for (let i = 0; i < p.word.length; i++) {
+      const r = p.dir === 'A' ? p.row : p.row + i;
+      const c = p.dir === 'A' ? p.col + i : p.col;
+      if (r < SIZE && c < SIZE) {
+        const existingNum = grid[r][c] ? grid[r][c].num : null;
+        grid[r][c] = {
+          letter: p.word[i],
+          // Keep existing num if present, only assign new num at word start
+          num: existingNum || (i === 0 ? p.num : null)
+        };
+      }
+    }
+    renderedWords.push(p);
+  });
+
+  // FIX: update global crosswordData to exactly match what was rendered
+  // so checkCrosswordComplete never checks a word that isn't on screen
+  crosswordData = renderedWords;
+
+  // Assign clue numbers by grid scan order (standard crossword convention)
+  // Scan top-to-bottom, left-to-right; any cell that starts an Across or Down word gets a number
+  let clueNum = 1;
+  const cellNums = {}; // "r,c" -> number
+
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (!grid[r][c]) continue;
+      const startsAcross = (c === 0 || !grid[r][c-1]) && grid[r][c+1];
+      const startsDown   = (r === 0 || !grid[r-1][c]) && grid[r+1]?.[c];
+      if (startsAcross || startsDown) {
+        cellNums[`${r},${c}`] = clueNum++;
+      }
+    }
+  }
+
+  // Re-assign nums in placed words and grid cells based on scan order
+  renderedWords.forEach(p => {
+    const key = `${p.row},${p.col}`;
+    p.num = cellNums[key] || p.num;
+  });
+  // Update grid cell numbers too
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (grid[r][c]) {
+        const key = `${r},${c}`;
+        grid[r][c].num = cellNums[key] || null;
+      }
+    }
+  }
+
+  // Mark reveals AFTER full grid is settled — first letter of every word only.
+  // We read from grid[r][c].letter (the settled truth) so intersections are always safe.
+  renderedWords.forEach(p => {
+    const r = p.row;
+    const c = p.col;
+    if (grid[r][c]) grid[r][c].revealed = true;
   });
 
   const userGrid = grid.map(row => row.map(cell => cell ? { ...cell, input: '' } : null));
+
+  // Pre-fill userGrid for revealed cells
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (grid[r][c]?.revealed) userGrid[r][c].input = grid[r][c].letter;
+    }
+  }
+
   const wordCorrect = new Set();
 
   function checkWord(p) {
@@ -2372,12 +2384,9 @@ grid[r][c] = {
   }
 
   function checkAllWords() {
-    let newCorrect = false;
-    WORDS.forEach(p => {
+    renderedWords.forEach(p => {
       if (!wordCorrect.has(p.num) && checkWord(p)) {
         wordCorrect.add(p.num);
-        addScore(60);
-        newCorrect = true;
         for (let i = 0; i < p.word.length; i++) {
           const r = p.dir === 'A' ? p.row : p.row + i;
           const c = p.dir === 'A' ? p.col + i : p.col;
@@ -2386,8 +2395,7 @@ grid[r][c] = {
         }
       }
     });
-    if (newCorrect) showToast(`✓ Word found! +60 pts`);
-    if (wordCorrect.size === WORDS.length) {
+    if (wordCorrect.size === renderedWords.length) {
       addScore(200);
       showToast('🎉 Crossword Complete!');
       setTimeout(submitCurrentGame, 1000);
@@ -2402,46 +2410,44 @@ grid[r][c] = {
   g.style.gridTemplateColumns = `repeat(${SIZE}, 40px)`;
   g.style.gridTemplateRows    = `repeat(${SIZE}, 40px)`;
 
-  for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
-    const cell = document.createElement('div');
-  
-const cellData = grid[r][c];
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const cellData = grid[r][c];
+      const cell = document.createElement('div');
 
-    cell.className = 'cw-cell' + (!grid[r][c] ? ' black' : '');
-    if (grid[r][c]) {
-      if (grid[r][c].num) {
+      if (!cellData) {
+        // Black/empty cell
+        cell.className = 'cw-cell black';
+        g.appendChild(cell);
+        continue;
+      }
+
+      cell.className = 'cw-cell' + (cellData.revealed ? ' hint-cell' : '');
+
+      // Clue number label
+      if (cellData.num) {
         const n = document.createElement('div');
-        n.className = 'cw-num'; n.textContent = grid[r][c].num;
+        n.className = 'cw-num';
+        n.textContent = cellData.num;
         cell.appendChild(n);
       }
-      
-if (!grid[r][c]) {
 
-  cell.style.visibility = 'hidden';
-
-  gridEl.appendChild(cell);
-
-  continue;
-}
-
-
+      // Input field
       const inp = document.createElement('input');
-      inp.className = 'cw-input'; inp.maxLength = 1;
-     
-if (cellData.reveal) {
+      inp.className = 'cw-input';
+      inp.maxLength = 1;
+      inp.dataset.r = r;
+      inp.dataset.c = c;
 
-  inp.value =
-    cellData.letter;
+      // Reveal: first letter of each word — always correct from settled grid
+      if (cellData.revealed) {
+        inp.value = cellData.letter;
+        inp.disabled = true;
+        inp.style.color = 'var(--accent4)';
+        inp.style.opacity = '0.9';
+        inp.style.background = 'rgba(94,196,255,0.08)';
+      }
 
-  inp.disabled = true;
-
-  inp.style.opacity = '0.85';
-
-  inp.style.background =
-    'rgba(255,255,255,0.12)';
-}
-
-      inp.dataset.r = r; inp.dataset.c = c;
       inp.addEventListener('input', ev => {
         const val = ev.target.value.toUpperCase().replace(/[^A-Z]/g, '');
         userGrid[r][c].input = val;
@@ -2450,6 +2456,7 @@ if (cellData.reveal) {
         cell.classList.remove('correct');
         checkAllWords();
       });
+
       inp.addEventListener('keydown', ev => {
         const moves = { ArrowRight:[0,1], ArrowLeft:[0,-1], ArrowDown:[1,0], ArrowUp:[-1,0] };
         if (moves[ev.key]) {
@@ -2458,17 +2465,20 @@ if (cellData.reveal) {
           if (next) { ev.preventDefault(); next.focus(); }
         }
       });
+
       cell.appendChild(inp);
+      g.appendChild(cell);
     }
-    g.appendChild(cell);
   }
+
   gridWrap.appendChild(g);
   container.appendChild(gridWrap);
 
+  // Clues panel — use renderedWords so clues match exactly what is on screen
   const clueWrap = document.createElement('div');
   clueWrap.className = 'crossword-clues';
-  const across = WORDS.filter(p => p.dir === 'A');
-  const down   = WORDS.filter(p => p.dir === 'D');
+  const across = renderedWords.filter(p => p.dir === 'A');
+  const down   = renderedWords.filter(p => p.dir === 'D');
   clueWrap.innerHTML = `
     <div class="clue-section">
       <h3>Across</h3>
@@ -2479,8 +2489,32 @@ if (cellData.reveal) {
       ${down.map(p => `<div class="clue-item"><strong>${p.num}.</strong> ${p.clue} <span style="color:var(--text3);font-size:11px">(${p.word.length})</span></div>`).join('')}
     </div>`;
   container.appendChild(clueWrap);
-  
-  container.appendChild(gridEl);
+
+  // ── Restore typed letters from saved progress ──────────────────────────────
+  // This runs inside buildCrossword so userGrid is still in scope.
+  // Only restores non-empty, non-revealed cells. Updates both DOM and userGrid.
+  if (loadedSave && loadedSave.game === 'crossword' && loadedSave.inputs && loadedSave.inputs.length) {
+    let restoredCount = 0;
+    setTimeout(() => {
+      loadedSave.inputs.forEach(inp => {
+        if (!inp.value || inp.value.trim() === '') return;
+        const r = parseInt(inp.row);
+        const c = parseInt(inp.col);
+        if (isNaN(r) || isNaN(c)) return;
+        const el = document.querySelector(`.cw-input[data-r="${r}"][data-c="${c}"]`);
+        if (!el || el.disabled) return; // skip revealed hint cells
+        const val = inp.value.toUpperCase().replace(/[^A-Z]/g, '');
+        if (!val) return;
+        el.value = val;
+        if (userGrid[r]?.[c]) userGrid[r][c].input = val; // keep userGrid in sync for checkAllWords
+        restoredCount++;
+      });
+      if (restoredCount > 0) {
+        showToast(`✏️ Progress restored — ${restoredCount} letters loaded`);
+        checkAllWords(); // re-run word check after restore so already-completed words highlight
+      }
+    }, 300);
+  }
 
 }
 
