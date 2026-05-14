@@ -448,35 +448,50 @@
 
   .crossword-container {
 
-  width: 100%;
-  overflow-x: auto;
+    width: 100%;
 
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
 
-  gap: 16px;
-}
+    gap: 16px;
+  }
 
-.crossword-grid {
+  .crossword-grid-wrap {
 
-  min-width: max-content;
-}
+    width: 100%;
+    overflow-x: auto;
 
-.cw-cell {
+    -webkit-overflow-scrolling: touch;
+  }
 
-  width: 28px;
-  height: 28px;
-}
+  .crossword-grid {
 
-.cw-input {
+    min-width: max-content;
+  }
 
-  font-size: 14px;
-}
+  .crossword-clues {
 
-.cw-num {
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+  }
 
-  font-size: 8px;
-}
+  .cw-cell {
+
+    width: 28px;
+    height: 28px;
+  }
+
+  .cw-input {
+
+    font-size: 14px;
+  }
+
+  .cw-num {
+
+    font-size: 8px;
+  }
+
 
   .stats-row {
     grid-template-columns: repeat(2, 1fr);
