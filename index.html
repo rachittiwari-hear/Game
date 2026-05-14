@@ -2153,9 +2153,11 @@ function renderCrossword(area) {
     area.innerHTML =
       `<div class="crossword-container"
         id="cwContainer"></div>`;
-
+const placedWords = [];
     crosswordData =
-      selectedWords.map((w, i) => {
+selectedWords
+.filter(w => w.row !== undefined)
+.map((w, i) => {
 
         const dir =
           i % 2 === 0 ? 'A' : 'D';
@@ -2171,6 +2173,7 @@ function renderCrossword(area) {
         } else {
 
           let placed = false;
+          const placedWords = [];
 
           for (const placedWord of selectedWords.slice(0, i)) {
 
@@ -2218,6 +2221,14 @@ function renderCrossword(area) {
 
                 if (fits) {
                   placed = true;
+                  placedWords.push({
+  word: w.word,
+  clue: w.clue,
+  dir: w.dir,
+  row: w.row,
+  col: w.col,
+  num: w.num
+});
                   break;
                 }
               }
@@ -2447,7 +2458,15 @@ for (let i = 0; i < p.word.length; i++) {
   }
 }
 
-if (!canPlace) return;
+if (!canPlace) {
+
+  console.warn(
+    'Skipping word:',
+    p.word
+  );
+
+  return;
+}
 
     for (let i = 0; i < p.word.length; i++) {
       const r = p.dir === 'A' ? p.row : p.row + i;
