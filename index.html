@@ -2093,7 +2093,10 @@ function validateCrosswordData(data) {
         cells[key] &&
         cells[key] !== expectedLetter
       ) {
-
+        crosswordData =
+  crosswordData.filter(
+    x => x.word !== word
+  );
         console.error(
           'Crossword Conflict',
           {
@@ -2156,7 +2159,17 @@ function renderCrossword(area) {
 const placedWords = [];
     crosswordData =
 selectedWords
-.filter(w => w.row !== undefined)
+.filter(w => {
+
+  if (
+    w.row === undefined ||
+    w.col === undefined
+  ) {
+    return false;
+  }
+
+  return true;
+})
 .map((w, i) => {
 
         const dir =
