@@ -137,8 +137,10 @@
   .timer { font-family: var(--font-mono); font-size: 20px; font-weight: 500; color: var(--accent); letter-spacing: 0.05em; }
   .score-display { font-family: var(--font-mono); font-size: 14px; color: var(--text2); }
   .score-display span { color: var(--accent4); font-weight: 500; }
-  .btn-submit { background: var(--accent); color: #0a0a0f; border: none; padding: 9px 22px; border-radius: 8px; font-family: var(--font-display); font-weight: 700; font-size: 14px; cursor: pointer; transition: opacity 0.15s; }
-  .btn-submit:hover { opacity: 0.85; }
+  .btn-submit { background: var(--accent); color: #0a0a0f; border: none; padding: 11px 28px; border-radius: 8px; font-family: var(--font-display); font-weight: 700; font-size: 15px; cursor: pointer; transition: opacity 0.1s, transform 0.1s; min-width: 100px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .btn-submit:hover { opacity: 0.88; }
+  .btn-submit:active { transform: scale(0.96); opacity: 1; }
+  .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
   .game-area { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 36px; }
 
@@ -363,29 +365,166 @@
   .scramble-feedback { font-family: var(--font-mono); font-size: 14px; font-weight: 500; min-height: 20px; }
   .scramble-progress { font-size: 13px; color: var(--text2); }
 
-  /* MEMORY MATCH */
-  .memory-wrap { display: flex; flex-direction: column; align-items: center; gap: 20px; }
-  .memory-info { display: flex; gap: 28px; font-size: 14px; color: var(--text2); }
-  .memory-info span { font-family: var(--font-mono); color: var(--text); }
-  .memory-grid { display: grid; gap: 10px; }
-  .mem-card {
-    width: 80px; height: 80px; border-radius: 10px;
-    cursor: pointer; perspective: 1000px; transition: transform 0.15s;
+  /* ═══════ MIND GAME v3 — Compact & Fun ═══════ */
+  .memory-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px; width: 100%; max-width: 780px; margin: 0 auto; padding: 0 8px;
   }
-  .mem-card:hover:not(.flipped):not(.matched) { transform: scale(1.05); }
+
+  /* ── HUD row ── */
+  .mem-hud {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; max-width: 680px; gap: 8px; flex-wrap: wrap;
+  }
+  .mem-hud-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 99px; padding: 5px 14px; font-size: 13px;
+  }
+  .mem-hud-pill .val {
+    font-family: var(--font-mono); font-weight: 700; color: var(--accent);
+    font-size: 15px; min-width: 28px; text-align: center;
+  }
+  .mem-hud-pill .lbl { color: var(--text3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .mem-hud-pill.danger .val { color: var(--accent3); }
+  .mem-hud-pill.warn   .val { color: #ff9f5b; }
+  .mem-hud-pill.streak-active { border-color: rgba(200,245,100,0.4); background: rgba(200,245,100,0.06); }
+  .mem-hud-pill.streak-active .val { color: var(--accent); }
+
+  /* ── dual progress bars ── */
+  .mem-bars { width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 4px; }
+  .mem-bar-row { display: flex; align-items: center; gap: 8px; }
+  .mem-bar-label { font-size: 10px; color: var(--text3); width: 64px; text-align: right; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0; }
+  .mem-bar-track { flex: 1; height: 5px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .mem-bar-fill { height: 100%; border-radius: 99px; transition: width 0.35s ease, background 0.35s; }
+  #memClicksFill { background: var(--accent); }
+  #memPairsFill  { background: var(--accent2); }
+
+  /* ── combo toast ── */
+  .mem-combo-toast {
+    position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-30px);
+    background: var(--accent); color: #0a0a0f; padding: 8px 22px;
+    border-radius: 99px; font-family: var(--font-display); font-weight: 800;
+    font-size: 17px; pointer-events: none; opacity: 0;
+    transition: opacity 0.15s, transform 0.15s; z-index: 950;
+  }
+  .mem-combo-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── grid ── */
+  .memory-grid {
+    display: grid;
+    gap: 7px;
+    grid-template-columns: repeat(6, 1fr);
+    width: 100%; max-width: 680px;
+  }
+
+  /* ── cards ── */
+  .mem-card {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    cursor: pointer;
+    perspective: 800px;
+    transition: transform 0.1s;
+    position: relative;
+  }
+  .mem-card:hover:not(.flipped):not(.matched) { transform: scale(1.07) translateY(-2px); }
   .mem-card-inner {
     width: 100%; height: 100%; position: relative;
-    transform-style: preserve-3d; transition: transform 0.4s;
+    transform-style: preserve-3d;
+    transition: transform 0.42s cubic-bezier(.4,0,.2,1);
   }
-  .mem-card.flipped .mem-card-inner, .mem-card.matched .mem-card-inner { transform: rotateY(180deg); }
+  .mem-card.flipped .mem-card-inner,
+  .mem-card.matched .mem-card-inner { transform: rotateY(180deg); }
+
   .mem-front, .mem-back {
     position: absolute; inset: 0; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
   }
-  .mem-front { background: var(--surface2); border: 1.5px solid var(--border); font-family: var(--font-display); font-size: 22px; font-weight: 800; color: var(--text3); }
-  .mem-back { background: var(--surface); border: 1.5px solid var(--border2); transform: rotateY(180deg); font-size: 34px; }
-  .mem-card.matched .mem-back { border-color: var(--accent); background: rgba(200,245,100,0.08); }
+
+  /* FRONT — all identical, NO colour hint */
+  .mem-front {
+    background: #1a1f2e;
+    border: 1.5px solid rgba(255,255,255,0.10);
+    user-select: none;
+  }
+
+  /* BACK — emoji large, clean */
+  .mem-back {
+    background: #1c1c2e; border: 1.5px solid rgba(255,255,255,0.1);
+    transform: rotateY(180deg);
+    font-size: 30px; flex-direction: column; gap: 0;
+  }
+
+  .mem-card.matched .mem-card-inner { transform: rotateY(180deg); }
+  .mem-card.matched .mem-back {
+    border-color: var(--accent);
+    background: rgba(200,245,100,0.1);
+    box-shadow: 0 0 16px rgba(200,245,100,0.18);
+  }
+  .mem-card.matched { cursor: default; pointer-events: none; }
+
+  .mem-card.no-match .mem-card-inner {
+    animation: mem-shake 0.38s ease;
+  }
+  @keyframes mem-shake {
+    0%,100%{ transform: rotateY(180deg) translateX(0) }
+    20%{ transform: rotateY(180deg) translateX(-6px) }
+    60%{ transform: rotateY(180deg) translateX(6px) }
+  }
+
+  /* ── match burst particles ── */
+  .mem-particle {
+    position: fixed; border-radius: 50%; pointer-events: none;
+    animation: mem-burst 0.6s ease-out forwards; z-index: 9000;
+  }
+  @keyframes mem-burst {
+    0%   { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+  }
+
+  /* ── popup ── */
+  .mem-popup {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 800;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .mem-popup-box {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--r2); padding: 36px 40px; text-align: center;
+    max-width: 380px; width: 90%;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+  }
+  .mem-popup-icon  { font-size: 52px; margin-bottom: 10px; }
+  .mem-popup-title { font-family: var(--font-display); font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .mem-popup-msg   { font-size: 14px; color: var(--text2); line-height: 1.75; margin-bottom: 22px; }
+  .mem-popup-btns  { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .mem-popup-btn   { background: var(--accent); color: #0a0a0f; border: none; padding: 11px 28px; border-radius: var(--r); font-family: var(--font-display); font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+  .mem-popup-btn:hover { opacity: 0.85; }
+  .mem-popup-btn.sec { background: none; border: 1px solid var(--border2); color: var(--text2); }
+  .mem-popup-btn.sec:hover { border-color: var(--text); color: var(--text); }
+  .mem-popup-btn.danger { background: var(--accent3); color: #fff; }
+
+  /* ── streak ring on card ── */
+  @keyframes mem-match-pop {
+    0%   { transform: rotateY(180deg) scale(1); }
+    50%  { transform: rotateY(180deg) scale(1.15); }
+    100% { transform: rotateY(180deg) scale(1); }
+  }
+  .mem-card.matched .mem-card-inner { animation: mem-match-pop 0.4s ease; }
+
+  /* ── mobile ── */
+  @media (max-width: 620px) {
+    .memory-grid { gap: 5px; grid-template-columns: repeat(5, 1fr); max-width: 360px; }
+    .mem-back    { font-size: 22px; }
+    .mem-hud     { gap: 5px; }
+    .mem-hud-pill { padding: 4px 10px; font-size: 11px; }
+    .mem-hud-pill .val { font-size: 13px; }
+  }
+  @media (max-width: 400px) {
+    .memory-grid { gap: 4px; grid-template-columns: repeat(5, 1fr); max-width: 300px; }
+    .mem-back    { font-size: 18px; }
+  }
 
   /* MATH SPRINT */
   .math-wrap { display: flex; flex-direction: column; align-items: center; gap: 24px; max-width: 480px; }
@@ -444,6 +583,9 @@
     overflow-x: auto;
     justify-content: flex-start;
   }
+
+  .memory-wrap { gap: 12px; width: 100%; align-items: center; }
+  .mem-chance-bar { max-width: 100% !important; }
 
   .sudoku-wrap {
     width: 100%;
@@ -753,7 +895,7 @@ const GAMES = [
   { id:'sudoku',    title:'Sudoku',        icon:'🔢', desc:'Fill the 9×9 grid so every row, column and box contains 1–9.', diff:'Medium', color:'#7c6aff' },
   { id:'crossword', title:'Crossword',     icon:'✏️', desc:'Solve the clues and fill the grid — classic newspaper style.', diff:'Hard',   color:'#ff6b6b' },
   { id:'scramble',  title:'Word Scramble', icon:'🔤', desc:'Unscramble letters to form the hidden word as fast as you can.', diff:'Easy',  color:'#c8f564' },
-  { id:'memory',    title:'Memory Match',  icon:'🃏', desc:'Flip cards and match emoji pairs. Train your visual memory.', diff:'Easy',   color:'#5ec4ff' },
+  { id:'memory',    title:'Mind Game',     icon:'🧩', desc:'30 cards, 15 hear.com product pairs. Only 30 chances — match them all before time runs out!', diff:'Hard',   color:'#5ec4ff' },
   { id:'math',      title:'Math Sprint',   icon:'➗', desc:'Answer rapid-fire arithmetic questions under the clock.', diff:'Medium', color:'#ff9f5b', release:'2026-05-08' },
 ];
 
@@ -776,7 +918,7 @@ let lobbyFocusIndex  = -1;
 let sudokuPuzzle = [], sudokuSolution = [], sudokuGiven = [], sudokuSelected = null;
   let crosswordData = null;
 let scrambleWords = [], scrambleIdx = 0, scrambleLetters = [], answerLetterMap = [];
-let memFlipped = [], memMatched = 0, memMoves = 0, memLock = false;
+let memFlipped = [], memMatched = 0, memMoves = 0, memLock = false, memChancesUsed = 0, memPopupShown28 = false;
 let mathAnswered = 0, mathTotal = 10, mathStreak = 0;
 
 // ─── SHEETS CONFIG ───────────────────────────────────
@@ -948,7 +1090,7 @@ function resetGameGlobals() {
   violations  = 0;
   sudokuPuzzle = []; sudokuSolution = []; sudokuGiven = []; sudokuSelected = null;
   scrambleWords = []; scrambleIdx = 0; scrambleLetters = []; answerLetterMap = [];
-  memFlipped = []; memMatched = 0; memMoves = 0; memLock = false;
+  memFlipped = []; memMatched = 0; memMoves = 0; memLock = false; memChancesUsed = 0; memPopupShown28 = false; memStreak = 0; memGameSubmitted = false;
   mathAnswered = 0; mathStreak = 0;
 }
 
@@ -984,6 +1126,8 @@ function getCurrentGameState() {
       scrambleIdx,
       memMatched,
       memMoves,
+      memChancesUsed,
+      memMatchedIds: [...document.querySelectorAll('.mem-card.matched')].map(c => c.dataset.pairId).filter(Boolean),
       mathAnswered,
       mathStreak
     }
@@ -1260,7 +1404,8 @@ async function submitCurrentGame() {
 
   // Memory
   if (currentGame === 'memory') {
-    completed = memMatched >= 8;
+    completed = memMatched >= 15;
+    memGameSubmitted = true;
   }
 
   // Math
@@ -1397,6 +1542,16 @@ async function saveScore(gameId, score) {
 
     ? JSON.stringify({
         crosswordData
+      })
+
+  : currentGame === 'memory'
+
+    ? JSON.stringify({
+        pairsMatched: memMatched,
+        totalPairs: 15,
+        chancesUsed: memChancesUsed,
+        maxChances: MEM_MAX_CHANCES,
+        completed: memMatched >= 15
       })
 
   : ''
@@ -1560,6 +1715,9 @@ function restoreGameState() {
     if (m.mathAnswered != null) mathAnswered = m.mathAnswered;
     if (m.mathStreak   != null) mathStreak   = m.mathStreak;
   }
+
+  // Memory game handles its own restore entirely inside renderMemory — skip here
+  if (currentGame === 'memory') return;
 
   // Crossword typed-letter restore happens inside buildCrossword (where userGrid is in scope)
   // so we skip inputs here for crossword only
@@ -2629,70 +2787,352 @@ function checkScramble() {
 }
 
 // ═══════════════════════════════════════════════════
-//  GAME 4 — MEMORY MATCH
+//  GAME 4 — MIND GAME v3 (Compact · Fun · No Clutter)
 // ═══════════════════════════════════════════════════
-const MEM_EMOJIS = ['🦊','🐸','🦋','🐬','🦁','🐧','🦄','🐙'];
-let memPairs = [];
 
+// 15 pairs — each pair has TWO IDENTICAL emojis (classic memory match)
+const MIND_PAIRS = [
+  { id:'brn',  ea:'🧠', eb:'🧠', hint:'Brain'         },
+  { id:'roc',  ea:'🚀', eb:'🚀', hint:'Rocket'        },
+  { id:'hrt',  ea:'❤️', eb:'❤️', hint:'Heart'         },
+  { id:'fre',  ea:'🔥', eb:'🔥', hint:'Fire'          },
+  { id:'gem',  ea:'💎', eb:'💎', hint:'Diamond'       },
+  { id:'str',  ea:'⭐', eb:'⭐', hint:'Star'          },
+  { id:'lig',  ea:'⚡', eb:'⚡', hint:'Lightning'     },
+  { id:'cat',  ea:'🐱', eb:'🐱', hint:'Cat'           },
+  { id:'piz',  ea:'🍕', eb:'🍕', hint:'Pizza'         },
+  { id:'mus',  ea:'🎵', eb:'🎵', hint:'Music'         },
+  { id:'tro',  ea:'🏆', eb:'🏆', hint:'Trophy'        },
+  { id:'eye',  ea:'👁️', eb:'👁️', hint:'Eye'           },
+  { id:'sun',  ea:'☀️', eb:'☀️', hint:'Sun'           },
+  { id:'art',  ea:'🎨', eb:'🎨', hint:'Art'           },
+  { id:'pln',  ea:'✈️', eb:'✈️', hint:'Plane'         },
+];
+
+// One solid accent colour per pair — used for the card BACK tint & front bg
+// Clean, recognisable, DIFFERENT enough to distinguish at a glance
+const PAIR_COLORS = [
+  '#7c6aff','#c8f564','#ff6b6b','#5ec4ff','#ff9f5b',
+  '#fd79a8','#00b894','#fdcb6e','#e17055','#74b9ff',
+  '#a29bfe','#55efc4','#ffeaa7','#fab1a0','#81ecec',
+];
+
+const MEM_MAX_CHANCES = 45;
+let memPairs       = [];
+let memFlipTimeout = null;
+let memStreak      = 0;
+let memGameSubmitted = false;
+
+// ─── tiny seeded-shuffle so order is user-unique ─────
+function shuffleArr(arr, rng) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ─── particle burst on match ──────────────────────────
+function spawnParticles(x, y, color) {
+  const count = 10;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'mem-particle';
+    const size = 5 + Math.random() * 7;
+    const angle = (Math.random() * 360) * Math.PI / 180;
+    const dist  = 40 + Math.random() * 60;
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      background:${color};
+      left:${x}px;top:${y}px;
+      --tx:${Math.cos(angle)*dist}px;
+      --ty:${Math.sin(angle)*dist}px;
+      animation-duration:${0.4 + Math.random()*0.3}s;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 800);
+  }
+}
+
+// ─── streak combo toast ───────────────────────────────
+let comboToastTimer = null;
+function showComboToast(streak) {
+  let el = document.getElementById('memComboToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'memComboToast';
+    el.className = 'mem-combo-toast';
+    document.body.appendChild(el);
+  }
+  const labels = ['','','🔥 2× Combo!','🔥 3× Hot!','⚡ 4× Blazing!','💥 5× INSANE!'];
+  el.textContent = labels[Math.min(streak, 5)] || `🔥 ${streak}× Combo!`;
+  el.classList.add('show');
+  clearTimeout(comboToastTimer);
+  comboToastTimer = setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+// ─── renderMemory ─────────────────────────────────────
 function renderMemory(area) {
-  // FIX: use user-specific seed for card shuffle
-  const seed = userGameSeed(currentUser.id, 'memory', 4);
+  const seed = userGameSeed(currentUser.id, 'mindgame', 42);
   const rng  = seededRand(seed);
-  memPairs    = [...MEM_EMOJIS, ...MEM_EMOJIS].sort(() => rng() - 0.5);
-  memFlipped  = []; memMatched = 0; memMoves = 0; memLock = false;
+
+  // Shuffle PAIRS order per user — different pair↔colour mapping
+  const shuffledPairs = shuffleArr(MIND_PAIRS, seededRand(userGameSeed(currentUser.id,'mg_order',7)));
+
+  // Build 30 cards (2 per pair)
+  const cards = [];
+  shuffledPairs.forEach((p, pi) => {
+    cards.push({ id: p.id, emoji: p.ea, hint: p.hint, colorIdx: pi });
+    cards.push({ id: p.id, emoji: p.eb, hint: p.hint, colorIdx: pi });
+  });
+  memPairs = shuffleArr(cards, rng);   // position shuffle per user
+
+  // Reset state
+  memFlipped = []; memMatched = 0; memMoves = 0; memLock = false;
+  memChancesUsed = 0; memPopupShown28 = false; memGameSubmitted = false;
+  memStreak = 0;
+
+  // Restore saved numeric state
+  if (loadedSave?.memory?.memChancesUsed !== undefined) {
+    memChancesUsed = loadedSave.memory.memChancesUsed || 0;
+    memMatched     = loadedSave.memory.memMatched     || 0;
+    memMoves       = loadedSave.memory.memMoves       || 0;
+    liveScore      = loadedSave.liveScore || 0;
+  }
+
+  const clicksLeft = MEM_MAX_CHANCES - memChancesUsed;
+  const clicksPct  = Math.max(0, clicksLeft / MEM_MAX_CHANCES * 100);
+  const pairsPct   = memMatched / 15 * 100;
+  const statCls    = clicksLeft <= 6 ? ' danger' : clicksLeft <= 14 ? ' warn' : '';
+  const clicksColor = clicksLeft <= 6 ? 'var(--accent3)' : clicksLeft <= 14 ? '#ff9f5b' : 'var(--accent)';
 
   area.innerHTML = `
     <div class="memory-wrap">
-      <div class="memory-info">
-        Pairs: <span id="memPairs">0/${MEM_EMOJIS.length}</span> &nbsp; Moves: <span id="memMoves">0</span>
+
+      <!-- HUD -->
+      <div class="mem-hud">
+        <div class="mem-hud-pill">
+          <span class="lbl">Pairs</span>
+          <span class="val" id="memPairsVal">${memMatched}</span>
+          <span class="lbl">/ 15</span>
+        </div>
+        <div class="mem-hud-pill${statCls}" id="memClicksPill">
+          <span class="lbl">Clicks</span>
+          <span class="val" id="memChancesLeft">${clicksLeft}</span>
+          <span class="lbl">left</span>
+        </div>
+        <div class="mem-hud-pill" id="memStreakPill">
+          <span class="lbl">Streak</span>
+          <span class="val" id="memStreakVal">0</span>
+          <span style="font-size:13px;">🔥</span>
+        </div>
+        <div class="mem-hud-pill" id="memScorePill" style="display:none;">
+          <span class="lbl">Score</span>
+          <span class="val" style="color:var(--accent4);" id="memScoreLocal">${liveScore}</span>
+        </div>
       </div>
-      <div class="memory-grid" id="memGrid" style="grid-template-columns:repeat(4,80px)"></div>
+
+      <!-- Progress bars -->
+      <div class="mem-bars">
+        <div class="mem-bar-row">
+          <span class="mem-bar-label">Clicks</span>
+          <div class="mem-bar-track">
+            <div class="mem-bar-fill" id="memClicksFill" style="width:${clicksPct}%;background:${clicksColor}"></div>
+          </div>
+        </div>
+        <div class="mem-bar-row">
+          <span class="mem-bar-label">Progress</span>
+          <div class="mem-bar-track">
+            <div class="mem-bar-fill" id="memPairsFill" style="width:${pairsPct.toFixed(1)}%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid -->
+      <div class="memory-grid" id="memGrid"></div>
+
+      <!-- Tiny hint -->
+      <div style="font-size:11px;color:var(--text3);text-align:center;">
+        Flip two cards with the <b style="color:var(--text2)">same emoji</b> to match them · ${MEM_MAX_CHANCES} clicks total
+      </div>
+
     </div>`;
 
-  const grid = document.getElementById('memGrid');
-  memPairs.forEach((emoji, i) => {
-    const card = document.createElement('div');
-    card.className = 'mem-card';
-    card.id = 'mc' + i;
-    card.innerHTML = `
-      <div class="mem-card-inner">
-        <div class="mem-front">?</div>
-        <div class="mem-back">${emoji}</div>
-      </div>`;
-    card.onclick = () => flipCard(i, emoji);
-    grid.appendChild(card);
-  });
-  restoreGameState();
-}
+  // Score display sync
+  const scoreEl = document.getElementById('liveScore');
+  if (scoreEl) scoreEl.textContent = liveScore;
 
-function flipCard(idx, emoji) {
-  if (memLock || memFlipped.length >= 2) return;
-  const card = document.getElementById('mc' + idx);
-  if (!card || card.classList.contains('flipped') || card.classList.contains('matched')) return;
-  card.classList.add('flipped');
-  memFlipped.push({ idx, emoji });
-  if (memFlipped.length === 2) {
-    memMoves++;
-    document.getElementById('memMoves').textContent = memMoves;
-    memLock = true;
-    if (memFlipped[0].emoji === memFlipped[1].emoji) {
-      document.getElementById('mc' + memFlipped[0].idx).classList.add('matched');
-      document.getElementById('mc' + memFlipped[1].idx).classList.add('matched');
-      memMatched++;
-      document.getElementById('memPairs').textContent = memMatched + '/' + MEM_EMOJIS.length;
-      addScore(80);
-      memFlipped = []; memLock = false;
-      if (memMatched === MEM_EMOJIS.length) { addScore(200); setTimeout(submitCurrentGame, 600); }
-    } else {
-      addScore(-10);
-      setTimeout(() => {
-        document.getElementById('mc' + memFlipped[0].idx)?.classList.remove('flipped');
-        document.getElementById('mc' + memFlipped[1].idx)?.classList.remove('flipped');
-        memFlipped = []; memLock = false;
-      }, 900);
+  // ── Build grid ──
+  const grid = document.getElementById('memGrid');
+  const savedMatchedIds = new Set(loadedSave?.memory?.memMatchedIds || []);
+
+  memPairs.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'mem-card';
+    el.id = 'mc' + i;
+    el.dataset.pairId  = card.id;
+    el.dataset.colorIdx = card.colorIdx;
+
+    if (savedMatchedIds.has(card.id)) {
+      el.classList.add('matched','flipped');
     }
+
+    el.innerHTML = `
+      <div class="mem-card-inner">
+        <div class="mem-front"></div>
+        <div class="mem-back">
+          <span style="font-size:inherit;line-height:1;">${card.emoji}</span>
+        </div>
+      </div>`;
+
+    el.onclick = () => flipCard(i, card.id);
+    grid.appendChild(el);
+  });
+
+  // Restore: no clicks left popup
+  if (memChancesUsed >= MEM_MAX_CHANCES && memMatched < 15) {
+    setTimeout(() => showMemPopup('💀','No Chances Left',
+      `You've used all ${MEM_MAX_CHANCES} chances and found <b>${memMatched} / 15 pairs</b>. Please submit your score.`,
+      [{txt:'Submit Score', cls:'', cb: submitCurrentGame}]
+    ), 400);
   }
 }
+
+// ─── HUD updater ─────────────────────────────────────
+function updateMemHUD() {
+  const left  = MEM_MAX_CHANCES - memChancesUsed;
+  const pct   = Math.max(0, left / MEM_MAX_CHANCES * 100);
+  const color = left <= 6 ? 'var(--accent3)' : left <= 14 ? '#ff9f5b' : 'var(--accent)';
+
+  const el = id => document.getElementById(id);
+  if (el('memChancesLeft'))  el('memChancesLeft').textContent  = left;
+  if (el('memClicksFill'))  { el('memClicksFill').style.width = pct + '%'; el('memClicksFill').style.background = color; }
+  if (el('memPairsFill'))     el('memPairsFill').style.width  = (memMatched/15*100).toFixed(1) + '%';
+  if (el('memPairsVal'))      el('memPairsVal').textContent   = memMatched;
+  if (el('memStreakVal'))     el('memStreakVal').textContent   = memStreak;
+  if (el('memScoreLocal'))    el('memScoreLocal').textContent  = liveScore;
+  const pill = el('memClicksPill');
+  if (pill) pill.className = 'mem-hud-pill' + (left <= 6 ? ' danger' : left <= 14 ? ' warn' : '');
+  const sp = el('memStreakPill');
+  if (sp) sp.className = 'mem-hud-pill' + (memStreak >= 2 ? ' streak-active' : '');
+}
+
+// ─── flipCard ─────────────────────────────────────────
+function flipCard(idx, pairId) {
+  if (memLock) return;
+
+  // Submitted guard
+  if (memGameSubmitted) {
+    showMemPopup('🔒','Already Submitted',
+      'You already submitted this game. No more flips allowed.',
+      [{txt:'OK', cls:''}]
+    ); return;
+  }
+
+  // No clicks guard
+  if (memChancesUsed >= MEM_MAX_CHANCES) {
+    showMemPopup('💀','No Chances Left',
+      `You've used all ${MEM_MAX_CHANCES} chances. Please submit your score.`,
+      [{txt:'Submit Score', cls:'danger', cb: submitCurrentGame}, {txt:'Cancel', cls:'sec'}]
+    ); return;
+  }
+
+  const card = document.getElementById('mc' + idx);
+  if (!card || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+  // Count the click
+  memChancesUsed++;
+  memMoves++;
+  card.classList.add('flipped');
+  memFlipped.push({ idx, pairId });
+  updateMemHUD();
+
+  // Last 6 warning
+  const left = MEM_MAX_CHANCES - memChancesUsed;
+  if (left === 6 && !memPopupShown28) {
+    memPopupShown28 = true;
+    setTimeout(() => showMemPopup('⚠️','Only 6 Clicks Left!',
+      'Choose carefully — every flip counts now!',
+      [{txt:'Got it!', cls:''}]
+    ), 200);
+  }
+
+  if (memFlipped.length === 2) {
+    memLock = true;
+    const [a, b] = memFlipped;
+
+    if (a.pairId === b.pairId) {
+      // ── MATCH ──
+      const ca = document.getElementById('mc' + a.idx);
+      const cb = document.getElementById('mc' + b.idx);
+      ca?.classList.add('matched');
+      cb?.classList.add('matched');
+
+      memMatched++;
+      memStreak++;
+
+      // Streak combo toast (2+)
+      if (memStreak >= 2) showComboToast(memStreak);
+
+      // Particle burst from card centre
+      if (ca) {
+        const r = ca.getBoundingClientRect();
+        const col = PAIR_COLORS[(ca.dataset.colorIdx || 0) % PAIR_COLORS.length];
+        spawnParticles(r.left + r.width/2, r.top + r.height/2, col);
+      }
+
+      memFlipped = []; memLock = false;
+      updateMemHUD();
+      triggerAutoSave();
+
+      if (memMatched === 15) { setTimeout(submitCurrentGame, 700); return; }
+
+    } else {
+      // ── NO MATCH ──
+      memStreak = 0;
+      document.getElementById('mc' + a.idx)?.classList.add('no-match');
+      document.getElementById('mc' + b.idx)?.classList.add('no-match');
+      memFlipTimeout = setTimeout(() => {
+        document.getElementById('mc' + a.idx)?.classList.remove('flipped','no-match');
+        document.getElementById('mc' + b.idx)?.classList.remove('flipped','no-match');
+        memFlipped = []; memLock = false;
+        updateMemHUD();
+      }, 900);
+    }
+    triggerAutoSave();
+  }
+
+  // Used all clicks
+  if (memChancesUsed >= MEM_MAX_CHANCES) {
+    setTimeout(() => showMemPopup('💀','No Chances Left!',
+      `You've used all ${MEM_MAX_CHANCES} chances and found <b>${memMatched} / 15 pairs</b>.<br><span style="color:var(--accent3)">No more flips allowed — submit your score.</span>`,
+      [{txt:'Submit Score', cls:'danger', cb: submitCurrentGame}, {txt:'Back to Lobby', cls:'sec', cb: goToLobby}]
+    ), 850);
+  }
+}
+
+// ─── popup helper (multi-button) ──────────────────────
+function showMemPopup(icon, title, msg, buttons) {
+  document.querySelectorAll('.mem-popup').forEach(e => e.remove());
+  const overlay = document.createElement('div');
+  overlay.className = 'mem-popup';
+  const btnHtml = buttons.map((b,i) =>
+    `<button class="mem-popup-btn ${b.cls||''}" id="mpb${i}">${b.txt}</button>`
+  ).join('');
+  overlay.innerHTML = `
+    <div class="mem-popup-box">
+      <div class="mem-popup-icon">${icon}</div>
+      <div class="mem-popup-title">${title}</div>
+      <div class="mem-popup-msg">${msg}</div>
+      <div class="mem-popup-btns">${btnHtml}</div>
+    </div>`;
+  document.body.appendChild(overlay);
+  buttons.forEach((b, i) => {
+    document.getElementById('mpb' + i).onclick = () => { overlay.remove(); if (b.cb) b.cb(); };
+  });
+}
+
 
 // ═══════════════════════════════════════════════════
 //  GAME 5 — MATH SPRINT
